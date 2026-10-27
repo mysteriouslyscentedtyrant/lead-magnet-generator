@@ -336,10 +336,13 @@
       if (!sec) { current.revealed[id] = true; return worker(); }
       sec.status = 'writing';
       function attempt(renewed) {
-        return api('section', { document: payload, sectionId: id, pass: state.pass || undefined }, current.controller.signal).then(function (r) {
+        var usedPass = state.pass || '';
+        return api('section', { document: payload, sectionId: id, pass: usedPass || undefined }, current.controller.signal).then(function (r) {
           if (current !== run || r.code === 'aborted') return null;
           if (r.pass) { state.pass = r.pass; save(); }
           if (r.code === 'verify_required' && !renewed) {
+            // Another writer already renewed the pass while this request was in flight: just retry.
+            if (state.pass && state.pass !== usedPass && !passRenewal) return attempt(true);
             return renewPass().then(function () { return attempt(true); }, function (e) {
               return { ok: false, code: 'human', message: humanError(e) };
             });
