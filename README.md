@@ -34,6 +34,7 @@ The OpenAI API key exists **only** inside n8n credentials. The frontend never se
 | 2026-10-27 | One AI call per section, not one call for the whole document. | Avoids webhook timeouts, gives real progress, allows regenerating one section. |
 | 2026-10-27 | AI content is plain-text blocks, never HTML/Markdown. | Templates escape everything, so neither users nor the AI can inject scripts or links. |
 | 2026-10-27 | AI model chosen in n8n, not in prompts. | Swap models without touching prompt files. Start with a low-cost model and upgrade if quality needs it. |
+| 2026-10-27 | Optional `offer` input (outline prompts v2). | Live test showed CTAs guessing the offer (e.g. an invented webinar) and titles restating the topic. |
 | 2026-10-27 | Repo is public. | n8n reads prompts with no token; jsDelivr can serve the frontend for free. No secrets live in the repo. |
 | 2026-10-27 | OpenAI called with the HTTP Request node (OpenAI credential), not the OpenAI node. | Full control of strict JSON-schema output, independent of n8n node versions. Starting model: `gpt-4.1-mini`. |
 
@@ -58,9 +59,10 @@ Section types per format:
 
 | File | Used by | Placeholders |
 |---|---|---|
-| `outline.ebook.v1.md` | outline workflow, format = ebook | topic, audience, tone, length, language |
-| `outline.guide.v1.md` | outline workflow, format = guide | same |
-| `outline.checklist.v1.md` | outline workflow, format = checklist | same |
+| `outline.ebook.v2.md` (live) | outline workflow, format = ebook | topic, audience, offer, tone, length, language |
+| `outline.guide.v2.md` (live) | outline workflow, format = guide | same |
+| `outline.checklist.v2.md` (live) | outline workflow, format = checklist | same |
+| `outline.*.v1.md` | previous version, kept for rollback | topic, audience, tone, length, language |
 | `section.v1.md` | section workflow, all formats | format, title, subtitle, audience, tone, length, language, outline, position, section_type, section_heading, section_goal, section_key_points |
 
 Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (the system message) and `===USER===` (the user message with `{{placeholders}}`). n8n splits on those two markers.
@@ -87,6 +89,7 @@ Request body (JSON):
 | `format` | yes | `ebook`, `guide`, `checklist` |
 | `topic` | yes | 3–200 characters |
 | `audience` | yes | 3–400 characters |
+| `offer` | no (default empty) | 0–300 characters: what the user sells next, e.g. `1:1 coaching`, `$297 course` |
 | `tone` | no (default `friendly`) | `friendly`, `professional`, `bold`, `inspiring`, `conversational` |
 | `length` | no (default `standard`) | `short`, `standard`, `detailed` |
 | `language` | no (default `English`) | a language name, e.g. `French` |

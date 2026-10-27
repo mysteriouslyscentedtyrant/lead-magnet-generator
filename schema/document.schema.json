@@ -18,10 +18,15 @@
       "description": "What the user typed in step 2. Kept so a section can be regenerated later with the same context.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["topic", "audience", "tone", "length", "language"],
+      "required": ["topic", "audience", "offer", "tone", "length", "language"],
       "properties": {
         "topic": { "type": "string", "minLength": 3, "maxLength": 200 },
         "audience": { "type": "string", "minLength": 3, "maxLength": 400 },
+        "offer": {
+          "description": "Optional: what the user sells after the lead magnet. Empty string = not provided. Used to tailor the title and CTA.",
+          "type": "string",
+          "maxLength": 300
+        },
         "tone": { "enum": ["friendly", "professional", "bold", "inspiring", "conversational"] },
         "length": { "enum": ["short", "standard", "detailed"] },
         "language": {
