@@ -60,11 +60,12 @@ Section types per format:
 
 | File | Used by | Placeholders |
 |---|---|---|
-| `outline.ebook.v2.md` (live) | outline workflow, format = ebook | topic, audience, offer, tone, length, language |
-| `outline.guide.v2.md` (live) | outline workflow, format = guide | same |
-| `outline.checklist.v2.md` (live) | outline workflow, format = checklist | same |
-| `outline.*.v1.md` | previous version, kept for rollback | topic, audience, tone, length, language |
-| `section.v1.md` (live) | section workflow, all formats | format, title, subtitle, audience, offer, tone, length, language, outline, position, section_type, section_heading, section_goal, section_key_points |
+| `outline.ebook.v3.md` (live) | outline step, format = ebook | topic, audience, offer, tone, length, language |
+| `outline.guide.v3.md` (live) | outline step, format = guide | same |
+| `outline.checklist.v3.md` (live) | outline step, format = checklist | same |
+| `outline.*.v1.md`, `outline.*.v2.md` | previous versions, kept for rollback | |
+| `section.v2.md` (live) | section step, all formats | same as v1 |
+| `section.v1.md` | previous version, kept for rollback | format, title, subtitle, audience, offer, tone, length, language, outline, position, section_type, section_heading, section_goal, section_key_points |
 
 Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (the system message) and `===USER===` (the user message with `{{placeholders}}`). n8n splits on those two markers.
 
@@ -88,7 +89,7 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 | `app.css` | Styles, all scoped under `.lmg` with a zero-weight `:where()` reset so the page's own CSS can't break the tool. |
 | `probe.html` / `probe.js` | One-off page check (scripts, iframe, jsDelivr, fonts, CORS). Not needed in production. |
 
-Options on `<div id="lead-magnet-generator">`: `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3).
+Options on `<div id="lead-magnet-generator">`: `data-turnstile-sitekey` (Cloudflare Turnstile site key; empty = no human check), `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3).
 
 Security: every piece of user or AI text is inserted with `textContent`, never as HTML. The only `innerHTML` is for fixed icon SVGs. Logos are re-drawn through a canvas (strips anything hidden in the file) and kept in the browser only. The CTA link must be `http(s)://`. Brand text placed in the PDF footer is escaped as a CSS string.
 
@@ -101,6 +102,21 @@ Security: every piece of user or AI text is inserted with `textContent`, never a
 4. Paste the new `widget.html` into systeme.io and republish. Old pages keep working on their pinned version until then.
 
 ## n8n workflows (`/n8n`)
+
+### Live: `lead-magnet-api-workflow.json` (v3, protected)
+
+One workflow, one webhook path `lead-magnet/:action`, so the page still calls `/webhook/lead-magnet/outline` and `/webhook/lead-magnet/section`, plus `/webhook/lead-magnet/pass` (a fresh writing pass, no AI call). It replaces the two older workflows below (kept for reference). Request/response formats are unchanged, with these additions: requests may carry `turnstile` (human-check token) and `pass`; successful outline answers include `pass`.
+
+**Protection (all settings at the top of the Guard node)**
+- Allowed pages: `https://sehnounberoual.systeme.io`, `https://systeme.io`, `https://www.systeme.io` (CORS + origin check; requests without a matching Origin are refused).
+- Human check: Cloudflare Turnstile, verified server-side (success + hostname). Off while `TURNSTILE_SECRET` is empty.
+- Writing pass: HMAC-SHA256 signed, valid 24 h, required to write sections, so bots can't skip the outline step. Expired → the page does one quick check and gets a new pass from `/pass`.
+- Limits: 1,000 lead magnets per day overall (UTC), 6 outlines and 80 sections per visitor per hour. Visitors are identified by a hashed IP, never stored in clear. Counters live in the workflow's static data and reset by themselves.
+- Privacy: successful runs are not saved in Executions; failed runs are kept for debugging.
+
+Error codes the page understands: `forbidden_origin` (403), `verify_required` / `verify_failed` (403), `rate_limited` (429), `daily_limit` (503), `invalid_input` (400), `rejected` (200), `generation_failed` (502).
+
+### Older (v2): `outline-workflow.json` and `section-workflow.json`
 
 ### `outline-workflow.json` — POST `/webhook/lead-magnet/outline`
 
@@ -144,11 +160,7 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 
 ## Open follow-ups
 
-- Outline prompts: follow the target language's capitalization (French buttons came out in English title case). Already in `section.v1.md`; add in `outline.*.v3.md`.
-- Outline **Check outline** node: strip leading numbers only when followed by a space (so "3.5 Ways…" stays intact), as already done in **Check section**.
-
-- Section prompt (next version): word counts drift (intro/conclusion/next_step run 40–60% over target, some chapters 30% under); ebook intro skips the "what's inside" list and calls itself "this guide"; some checklist items run 13–15 words (target under 12).
-- Frontend: write sections 3 at a time in parallel (measured: whole ebook in ~15 s instead of ~30 s one by one).
+- None open. (Fixed in Phase 7: French/other capitalization in outline prompts, safe number cleanup in headings, word counts, ebook intro, checklist item length.)
 
 ## Roadmap
 
@@ -158,5 +170,5 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress) — `v0.1.0`; step 5 shows a plain preview until Phase 5
 - [x] **Phase 5** — 3 design templates, live preview, customization — `v0.2.0`
 - [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
-- [ ] **Phase 7** — hardening: Turnstile, rate limit, origin check, error states, mobile pass
+- [x] **Phase 7** — hardening: Turnstile, signed writing pass, rate limits, daily cap, origin check, no success logs, prompt fixes (outline v3, section v2) — frontend `v0.3.0`, workflow v3
 - [ ] **Last step** — real one-click PDF download (postponed 2026-10-27). Recommended: Gotenberg container next to n8n, print window kept as fallback. Alternatives: in-browser PDF library or a paid PDF API.

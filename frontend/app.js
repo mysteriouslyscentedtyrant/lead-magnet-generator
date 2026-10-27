@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.2.1';
+  var VERSION = '0.3.0';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -71,7 +71,8 @@
   var config = {
     api: (root.getAttribute('data-api') || '').replace(/\/+$/, ''),
     mock: root.getAttribute('data-mock') === '1',
-    concurrency: Math.max(1, Math.min(4, parseInt(root.getAttribute('data-concurrency'), 10) || 3))
+    concurrency: Math.max(1, Math.min(4, parseInt(root.getAttribute('data-concurrency'), 10) || 3)),
+    sitekey: (root.getAttribute('data-turnstile-sitekey') || '').trim()
   };
 
   var state = load() || freshState();
@@ -101,6 +102,7 @@
         s.doc.sections.forEach(function (x) { if (x.status === 'writing' || x.status === 'queued') x.status = 'outlined'; });
       }
       if (s.step > 3 && !s.doc) s.step = s.format ? 2 : 1;
+      if (typeof s.pass !== 'string' || s.pass.length > 300) s.pass = '';
       return s;
     } catch (e) { return null; }
   }
@@ -108,7 +110,7 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
       try {
-        var copy = { v: 1, step: state.step, format: state.format, input: state.input, doc: state.doc };
+        var copy = { v: 1, step: state.step, format: state.format, input: state.input, doc: state.doc, pass: state.pass || '' };
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(copy));
       } catch (e) { /* storage full or blocked: the tool still works, it just won't survive a refresh */ }
     }, 250);
@@ -217,7 +219,7 @@
   }
   function errorText(r, what) {
     if (!r) return 'Something went wrong. Please try again.';
-    if ((r.code === 'invalid_input' || r.code === 'rejected' || r.code === 'config') && r.message) return r.message;
+    if (['invalid_input', 'rejected', 'config', 'human', 'rate_limited', 'daily_limit', 'verify_required', 'verify_failed', 'forbidden_origin'].indexOf(r.code) !== -1 && r.message) return r.message;
     if (r.code === 'network') return 'Can\'t reach the generator. Check your internet connection and try again.';
     if (r.code === 'timeout') return 'The generator took too long to answer. Please try again.';
     return r.message || ('We couldn\'t ' + what + ' right now. Please try again in a minute.');
@@ -260,13 +262,18 @@
     outlineAbort = new AbortController();
     render();
     var i = state.input;
-    api('outline', {
-      format: state.format, topic: i.topic.trim(), audience: i.audience.trim(), offer: i.offer.trim(),
-      tone: i.tone, length: i.length, language: languageValue()
-    }, outlineAbort.signal).then(function (r) {
+    var signal = outlineAbort.signal;
+    getHumanToken().then(function (token) {
+      if (signal.aborted) return { ok: false, code: 'aborted' };
+      return api('outline', {
+        format: state.format, topic: i.topic.trim(), audience: i.audience.trim(), offer: i.offer.trim(),
+        tone: i.tone, length: i.length, language: languageValue(), turnstile: token || undefined
+      }, signal);
+    }, function (e) { return { ok: false, code: 'human', message: humanError(e) }; }).then(function (r) {
       outlineAbort = null; state.busy = null;
       if (r.code === 'aborted') { render(); return; }
       if (!r.ok) { state.notice = { kind: 'error', text: errorText(r, 'create your outline') }; render(); return; }
+      if (r.pass) state.pass = r.pass;
       var doc = r.document;
       doc.sections.forEach(function (s) { s.status = 'outlined'; s.blocks = []; s.dirty = false; if (!s.keyPoints.length) s.keyPoints = ['']; });
       state.doc = doc;
@@ -325,8 +332,20 @@
       var sec = findSection(id);
       if (!sec) { current.revealed[id] = true; return worker(); }
       sec.status = 'writing';
-      return api('section', { document: payload, sectionId: id }, current.controller.signal).then(function (r) {
-        if (current !== run || r.code === 'aborted') return;
+      function attempt(renewed) {
+        return api('section', { document: payload, sectionId: id, pass: state.pass || undefined }, current.controller.signal).then(function (r) {
+          if (current !== run || r.code === 'aborted') return null;
+          if (r.pass) { state.pass = r.pass; save(); }
+          if (r.code === 'verify_required' && !renewed) {
+            return renewPass().then(function () { return attempt(true); }, function (e) {
+              return { ok: false, code: 'human', message: humanError(e) };
+            });
+          }
+          return r;
+        });
+      }
+      return attempt(false).then(function (r) {
+        if (!r || current !== run) return;
         current.results[id] = r;
         reveal(current);
         return worker();
@@ -1184,6 +1203,76 @@
     aside.appendChild(h('div', { class: 'lmg-live' + (state.busy === 'outline' ? ' is-thinking' : '') }, [stage, info]));
   }
 
+  // ------------------------------------------------------------------ human check (Cloudflare Turnstile) + writing pass
+  // Off until data-turnstile-sitekey is set on the root element. The check is usually invisible;
+  // a small panel only appears if Cloudflare needs a click.
+  var tsLoad = null;
+  function loadTurnstile() {
+    if (window.turnstile) return Promise.resolve();
+    if (tsLoad) return tsLoad;
+    tsLoad = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async = true;
+      s.onload = function () { var n = 0; (function wait() { if (window.turnstile) resolve(); else if (n++ > 100) reject(new Error('turnstile')); else setTimeout(wait, 50); })(); };
+      s.onerror = function () { tsLoad = null; reject(new Error('turnstile')); };
+      document.head.appendChild(s);
+    });
+    return tsLoad;
+  }
+  function getHumanToken() {
+    if (!config.sitekey) return Promise.resolve('');
+    return loadTurnstile().then(function () {
+      return new Promise(function (resolve, reject) {
+        var hd = hIn(document);
+        var hostEl = hd('div', { class: 'lmg-ts-host' });
+        var cancel = hd('button', { type: 'button', class: 'lmg-ts-cancel', text: 'Cancel' });
+        var panel = hd('div', { class: 'lmg-ts', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Quick security check' },
+          hd('div', { class: 'lmg-ts-card' }, [
+            hd('p', { class: 'lmg-ts-title', text: 'Quick security check' }),
+            hd('p', { class: 'lmg-ts-text', text: 'This keeps the free generator safe from bots.' }),
+            hostEl, cancel
+          ]));
+        document.body.appendChild(panel);
+        var widget = null, done = false;
+        // Show the panel only if the check takes a moment (most visitors never see it).
+        var showTimer = setTimeout(function () { panel.classList.add('is-visible'); }, 900);
+        function finish(fn, value) {
+          if (done) return; done = true;
+          clearTimeout(showTimer);
+          try { if (widget !== null) window.turnstile.remove(widget); } catch (e) { /* ignore */ }
+          panel.remove(); fn(value);
+        }
+        cancel.addEventListener('click', function () { finish(reject, new Error('cancelled')); });
+        try {
+          widget = window.turnstile.render(hostEl, {
+            sitekey: config.sitekey, action: 'lead_magnet', appearance: 'interaction-only',
+            callback: function (token) { finish(resolve, token); },
+            'error-callback': function () { finish(reject, new Error('turnstile')); },
+            'expired-callback': function () { /* a new token is issued automatically */ }
+          });
+        } catch (e) { finish(reject, e); }
+      });
+    });
+  }
+  function humanError(e) {
+    return e && e.message === 'cancelled' ? 'The security check was cancelled. Click the button again when you are ready.'
+      : 'The security check could not load. Check your connection, or turn off a blocker for this page, then try again.';
+  }
+  // One shared renewal for all parallel writers.
+  var passRenewal = null;
+  function renewPass() {
+    if (passRenewal) return passRenewal;
+    passRenewal = getHumanToken().then(function (token) {
+      return api('pass', { turnstile: token });
+    }).then(function (r) {
+      passRenewal = null;
+      if (r.ok && r.pass) { state.pass = r.pass; save(); return true; }
+      throw new Error(r.message || 'pass');
+    }, function (e) { passRenewal = null; throw e; });
+    return passRenewal;
+  }
+
   // ------------------------------------------------------------------ design: templates, palettes, fonts
   var TEMPLATES = [
     { id: 'clean', name: 'Clean', desc: 'White pages, calm and easy to read.' },
@@ -1688,7 +1777,13 @@
   // ------------------------------------------------------------------ mock API (data-mock="1")
   function mockApi(path, body, signal) {
     return new Promise(function (resolve) {
-      var t = setTimeout(function () { resolve(path === 'outline' ? mockOutline(body) : mockSection(body)); }, path === 'outline' ? 1400 : 700 + Math.random() * 1600);
+      var t = setTimeout(function () {
+        if (path === 'pass') { resolve(config.sitekey && !body.turnstile ? { ok: false, code: 'verify_required', message: 'Please confirm you are human, then try again.' } : { ok: true, pass: 'mock.' + Date.now() }); return; }
+        if (path === 'outline' && config.sitekey && !body.turnstile) { resolve({ ok: false, code: 'verify_required', message: 'Please confirm you are human, then try again.' }); return; }
+        var r = path === 'outline' ? mockOutline(body) : mockSection(body);
+        if (r.ok && path === 'outline') r.pass = 'mock.' + Date.now();
+        resolve(r);
+      }, path === 'outline' ? 1400 : path === 'pass' ? 300 : 700 + Math.random() * 1600);
       if (signal) signal.addEventListener('abort', function () { clearTimeout(t); resolve({ ok: false, code: 'aborted' }); });
     });
   }
@@ -1721,6 +1816,7 @@
     };
   }
   function mockSection(b) {
+    if (config.sitekey && !(typeof b.pass === 'string' && /^mock\.\d+$/.test(b.pass))) return { ok: false, code: 'verify_required', message: 'For your security, please confirm you are human to keep writing.' };
     var sec = b.document.sections.filter(function (s) { return s.id === b.sectionId; })[0];
     if (!sec) return { ok: false, code: 'invalid_input', message: 'sectionId does not match any section in the outline.' };
     if (/\[fail\]/i.test(sec.heading)) return { ok: false, code: 'generation_failed', message: 'We couldn\'t write this section right now. Please try again.' };

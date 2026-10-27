@@ -1,0 +1,1108 @@
+{
+  "name": "Lead Magnet API (v3, protected)",
+  "nodes": [
+    {
+      "id": "5183991e-77a6-438a-abe0-1d566fccd24e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "94a7357a-e9d7-455f-8a1d-fb4dcbbc143f",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-magnet/:action",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://sehnounberoual.systeme.io,https://systeme.io,https://www.systeme.io"
+        }
+      }
+    },
+    {
+      "id": "d84a3394-979f-4ac9-932b-4429bafef9b7",
+      "name": "Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ],
+      "parameters": {
+        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// Pages allowed to use this tool (exact origins: https:// + domain, no path).\nconst ALLOWED_ORIGINS = ['https://sehnounberoual.systeme.io', 'https://systeme.io', 'https://www.systeme.io'];\n// Cloudflare Turnstile Secret Key. Leave '' to switch the human check off.\nconst TURNSTILE_SECRET = '';\n// Signs the writing pass. Any long random text; '' = generated automatically once.\nconst PASS_SECRET = '';\nconst DAILY_LIMIT = 1000;        // lead magnets (outlines) per day, all visitors together (UTC day)\nconst OUTLINES_PER_HOUR = 6;     // per visitor\nconst SECTIONS_PER_HOUR = 80;    // per visitor (an ebook is up to 9 sections, plus rewrites)\nconst PASS_HOURS = 24;           // how long a writing pass stays valid\n// ===================================================================================\n\nconst wh = $('Webhook').first().json;\nconst headers = wh.headers || {};\nconst body = wh.body && typeof wh.body === 'object' ? wh.body : {};\nconst action = String((wh.params && wh.params.action) || '').toLowerCase();\n\nfunction stop(statusCode, code, message, extra) {\n  return [{ json: Object.assign({ ok: false, statusCode: statusCode, response: { ok: false, code: code, message: message } }, extra || {}) }];\n}\n\n// ---------- tiny SHA-256 / HMAC (no external modules needed) ----------\nfunction sha256(bytes) {\n  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];\n  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];\n  const l = bytes.length, withPad = ((l + 9 + 63) >> 6) << 6;\n  const m = new Uint8Array(withPad); m.set(bytes); m[l] = 0x80;\n  const bits = l * 8; m[withPad - 4] = bits >>> 24; m[withPad - 3] = (bits >>> 16) & 255; m[withPad - 2] = (bits >>> 8) & 255; m[withPad - 1] = bits & 255;\n  m[withPad - 5] = Math.floor(l / 0x20000000) & 255;\n  const w = new Array(64);\n  for (let i = 0; i < withPad; i += 64) {\n    for (let t = 0; t < 16; t++) w[t] = (m[i + 4 * t] << 24) | (m[i + 4 * t + 1] << 16) | (m[i + 4 * t + 2] << 8) | m[i + 4 * t + 3];\n    for (let t = 16; t < 64; t++) {\n      const a = w[t - 15], b = w[t - 2];\n      const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);\n      const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);\n      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let t = 0; t < 64; t++) {\n      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));\n      const ch = (e & f) ^ (~e & g);\n      const t1 = (h + S1 + ch + K[t] + w[t]) | 0;\n      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));\n      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;\n    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;\n  }\n  const out = new Uint8Array(32);\n  H.forEach((v, i) => { out[4 * i] = v >>> 24; out[4 * i + 1] = (v >>> 16) & 255; out[4 * i + 2] = (v >>> 8) & 255; out[4 * i + 3] = v & 255; });\n  return out;\n}\nfunction utf8(s) { return Buffer.from(String(s), 'utf8'); }\nfunction hex(b) { return Array.from(b, x => x.toString(16).padStart(2, '0')).join(''); }\nfunction hmac(key, msg) {\n  let k = utf8(key); if (k.length > 64) k = sha256(k);\n  const ip = new Uint8Array(64), op = new Uint8Array(64);\n  for (let i = 0; i < 64; i++) { ip[i] = (k[i] || 0) ^ 0x36; op[i] = (k[i] || 0) ^ 0x5c; }\n  const mb = utf8(msg);\n  const inner = new Uint8Array(64 + mb.length); inner.set(ip); inner.set(mb, 64);\n  const ih = sha256(inner);\n  const outer = new Uint8Array(96); outer.set(op); outer.set(ih, 64);\n  return hex(sha256(outer));\n}\nfunction randomHex(n) {\n  const b = new Uint8Array(n);\n  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b);\n  else for (let i = 0; i < n; i++) b[i] = Math.floor(Math.random() * 256);\n  return hex(b);\n}\nfunction b64url(s) { return Buffer.from(s, 'utf8').toString('base64').replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_'); }\nfunction unb64url(s) { return Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); }\nfunction safeEqual(a, b) { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }\n\n// ---------- storage (workflow static data: kept between runs of the active workflow) ----------\nconst sd = $getWorkflowStaticData('global');\nif (!sd.secret) sd.secret = randomHex(32);\nconst secret = PASS_SECRET || sd.secret;\nconst now = new Date();\nconst day = now.toISOString().slice(0, 10), hour = now.toISOString().slice(0, 13);\nif (sd.day !== day) { sd.day = day; sd.outlines = 0; sd.sections = 0; }\nif (sd.hour !== hour) { sd.hour = hour; sd.visitors = {}; }\nconst minutesLeft = 60 - now.getUTCMinutes();\n\nfunction makePass() {\n  const payload = b64url(JSON.stringify({ e: Math.floor(Date.now() / 1000) + PASS_HOURS * 3600, n: randomHex(6) }));\n  return payload + '.' + hmac(secret, payload).slice(0, 40);\n}\nfunction passValid(p) {\n  if (typeof p !== 'string' || p.length > 300 || p.indexOf('.') < 1) return false;\n  const [payload, sig] = p.split('.');\n  if (!safeEqual(sig || '', hmac(secret, payload).slice(0, 40))) return false;\n  try { const d = JSON.parse(unb64url(payload)); return typeof d.e === 'number' && d.e > Date.now() / 1000; } catch (e) { return false; }\n}\n\n// ---------- checks ----------\nif (action !== 'outline' && action !== 'section' && action !== 'pass') return stop(404, 'not_found', 'Unknown address.');\n\nconst origin = String(headers.origin || '');\nif (ALLOWED_ORIGINS.length && ALLOWED_ORIGINS.indexOf(origin) === -1) {\n  return stop(403, 'forbidden_origin', 'This tool can only be used from its own page.');\n}\n\n// Visitor key: hashed IP (never stored in clear). No IP found = no per-visitor limit.\nconst ip = String(headers['cf-connecting-ip'] || String(headers['x-forwarded-for'] || '').split(',')[0] || headers['x-real-ip'] || '').trim();\nconst vkey = ip ? hmac(secret, 'ip:' + ip).slice(0, 16) : '';\nconst visitor = vkey ? (sd.visitors[vkey] = sd.visitors[vkey] || { o: 0, s: 0 }) : { o: 0, s: 0 };\n\nconst token = typeof body.turnstile === 'string' ? body.turnstile.slice(0, 2048) : '';\nlet verify = false, newPass = '';\n\nif (action === 'outline') {\n  if (sd.outlines >= DAILY_LIMIT) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.o >= OUTLINES_PER_HOUR) return stop(429, 'rate_limited', 'You have created several lead magnets in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o++; sd.outlines++;\n  newPass = makePass();\n} else if (action === 'pass') {\n  // Fresh writing pass after the old one expired. No AI call.\n  if (visitor.o >= OUTLINES_PER_HOUR * 3) return stop(429, 'rate_limited', 'Too many attempts. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o += 0.34;\n  newPass = makePass();\n} else {\n  if (sd.sections >= DAILY_LIMIT * 12) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.s >= SECTIONS_PER_HOUR) return stop(429, 'rate_limited', 'You have written a lot of sections in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (!passValid(body.pass)) {\n    if (TURNSTILE_SECRET) {\n      if (!token) return stop(403, 'verify_required', 'For your security, please confirm you are human to keep writing.');\n      verify = true;\n    }\n    newPass = makePass();\n  }\n  visitor.s++; sd.sections++;\n}\n\nreturn [{ json: { ok: true, statusCode: 200, action: action, verify: verify, newPass: newPass,\n  turnstileBody: verify ? { secret: TURNSTILE_SECRET, response: token, remoteip: ip || undefined } : null,\n  allowedHosts: ALLOWED_ORIGINS.map(o => o.replace(/^https?:\\/\\//, '')) } }];\n"
+      }
+    },
+    {
+      "id": "40252cae-9e25-4ec4-a781-78cfa487f8c3",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "de902134-ea68-4a0a-b2e4-21d12d6dbfd3",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2b5b47a0-6b9c-46aa-a30b-2524aa89804a",
+      "name": "Human check needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f6059caa-4a8f-47d9-877f-d86bb09d8a35",
+              "leftValue": "={{ $json.verify }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a51446a4-e57e-44c3-89be-a7216ba4c9c2",
+      "name": "Verify Turnstile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        180
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.turnstileBody) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "7a520185-9675-4598-806e-cc02afd4965e",
+      "name": "Check Turnstile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        180
+      ],
+      "parameters": {
+        "jsCode": "// Checks Cloudflare's answer to the human check.\nconst g = $('Guard').first().json;\nconst r = $input.first().json || {};\nconst hostOk = !r.hostname || g.allowedHosts.indexOf(r.hostname) !== -1;\nif (!r.success || !hostOk) {\n  return [{ json: { ok: false, statusCode: 403, response: { ok: false, code: 'verify_failed', message: 'We could not confirm you are human. Please try again.' } } }];\n}\nreturn [{ json: { ok: true, action: g.action } }];\n"
+      }
+    },
+    {
+      "id": "a040c289-7dbe-4411-a446-a6ff24d383f7",
+      "name": "Human?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6149fde3-90b6-446a-8f5f-8d2eadef582a",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "19d0e1ca-9f8d-4e44-a448-b7216a822a06",
+      "name": "Pass only?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1430,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c2f34088-aa06-4400-ad62-06fc1ed1bc04",
+              "leftValue": "={{ $('Guard').first().json.action }}",
+              "rightValue": "pass",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d9c33077-6424-4608-bc39-5a2f44c9109b",
+      "name": "Pass answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        560
+      ],
+      "parameters": {
+        "jsCode": "// Answer for /pass: just the fresh writing pass.\nconst g = $('Guard').first().json;\nreturn [{ json: { statusCode: 200, response: { ok: true, pass: g.newPass } } }];\n"
+      }
+    },
+    {
+      "id": "9dcaf113-479d-4617-b0ed-f775be7724ab",
+      "name": "Outline or section?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f6d66530-b48b-48ce-a774-7cde64aa6b49",
+              "leftValue": "={{ $('Guard').first().json.action }}",
+              "rightValue": "outline",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5f9842d6-2df6-4c62-a4f5-804ee7269bfe",
+      "name": "Validate outline input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        220
+      ],
+      "parameters": {
+        "jsCode": "// ===================== SETTINGS (safe to change) =====================\nconst PROMPT_VERSION = 'v3';          // which prompt files to use: outline.<format>.v3.md\nconst MODEL = 'gpt-4.1-mini';         // OpenAI model used for the outline\nconst REPO_RAW = 'https://raw.githubusercontent.com/mysteriouslyscentedtyrant/lead-magnet-generator/main';\n// =====================================================================\n\nconst FORMATS = ['ebook', 'guide', 'checklist'];\nconst TONES = ['friendly', 'professional', 'bold', 'inspiring', 'conversational'];\nconst LENGTHS = ['short', 'standard', 'detailed'];\n\nconst body = $('Webhook').first().json.body || {};\nconst errors = [];\n\n// Removes invisible/control characters, angle brackets and {{ }} so user text\n// can't break out of the <user_input> tags or inject placeholders.\nfunction clean(value) {\n  if (typeof value !== 'string') return '';\n  return value\n    .normalize('NFKC')\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(/[<>]/g, ' ')\n    .replace(/\\{\\{|\\}\\}/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction text(field, label, min, max) {\n  const v = clean(body[field]);\n  if (v.length < min) errors.push(`${label} must be at least ${min} characters.`);\n  else if (v.length > max) errors.push(`${label} must be ${max} characters or less.`);\n  return v;\n}\n\nfunction choice(field, label, allowed, fallback) {\n  const raw = body[field];\n  if (raw === undefined || raw === null || raw === '') {\n    if (fallback !== undefined) return fallback;\n    errors.push(`${label} is required.`);\n    return '';\n  }\n  const v = String(raw).trim().toLowerCase();\n  if (!allowed.includes(v)) {\n    errors.push(`${label} must be one of: ${allowed.join(', ')}.`);\n    return '';\n  }\n  return v;\n}\n\nconst format = choice('format', 'Format', FORMATS);\nconst topic = text('topic', 'Topic', 3, 200);\nconst audience = text('audience', 'Audience', 3, 400);\nconst offer = text('offer', 'Offer', 0, 300);   // optional\nconst tone = choice('tone', 'Tone', TONES, 'friendly');\nconst length = choice('length', 'Length', LENGTHS, 'standard');\n\nlet language = clean(body.language || '') || 'English';\nif (!/^[\\p{L} ()-]{2,30}$/u.test(language)) {\n  errors.push('Language must be a language name such as English or French.');\n}\n\nif (errors.length) {\n  return [{\n    json: {\n      ok: false, statusCode: 400,\n      response: { ok: false, code: 'invalid_input', message: errors.join(' ') },\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    ok: true,\n    input: { format, topic, audience, offer, tone, length, language },\n    model: MODEL,\n    promptVersion: PROMPT_VERSION,\n    promptUrl: `${REPO_RAW}/prompts/outline.${format}.${PROMPT_VERSION}.md`,\n    schemaUrl: `${REPO_RAW}/schema/outline.response.schema.json`,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "87e9bcc9-6ed7-456d-88dd-8b691edfa5a8",
+      "name": "Outline input OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "1acf9d8f-a3cb-43a0-8b16-318c440cf514",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d062bf08-6a6b-40b7-820a-ffc623845ce7",
+      "name": "Load outline prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        120
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $json.promptUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "4d2ce341-764b-4a9b-824c-846ea43b106a",
+      "name": "Load outline schema",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        120
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $('Validate outline input').first().json.schemaUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "3d1369af-92fa-4891-a915-3f4c0abbed94",
+      "name": "Build outline request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// Builds the OpenAI request from the prompt file and response schema loaded from GitHub.\nconst settings = $('Validate outline input').first().json;\nconst input = settings.input;\nconst promptText = String($('Load outline prompt').first().json.data || '').replace(/\\r\\n/g, '\\n');\nconst schemaText = $('Load outline schema').first().json.data;\n\n// Split the prompt file into its SYSTEM and USER parts.\nconst sysMarker = '===SYSTEM===';\nconst userMarker = '===USER===';\nconst sysAt = promptText.indexOf(sysMarker);\nconst userAt = promptText.indexOf(userMarker);\nif (sysAt === -1 || userAt === -1 || userAt < sysAt) {\n  throw new Error('Prompt file is missing the ===SYSTEM=== or ===USER=== marker: ' + settings.promptUrl);\n}\nconst system = promptText.slice(sysAt + sysMarker.length, userAt).trim();\nconst userTemplate = promptText.slice(userAt + userMarker.length).trim();\n\n// Fill {{placeholders}} in ONE pass, so text typed by a user is never re-read as a placeholder.\nconst vars = { ...input, offer: input.offer || 'Not provided' };\nconst user = userTemplate.replace(/\\{\\{(\\w+)\\}\\}/g, (match, key) => {\n  if (!(key in vars)) throw new Error('Prompt uses an unknown placeholder: ' + match);\n  return vars[key];\n});\n\nlet responseSchema;\ntry {\n  responseSchema = typeof schemaText === 'string' ? JSON.parse(schemaText) : schemaText;\n} catch (e) {\n  throw new Error('Response schema is not valid JSON: ' + settings.schemaUrl);\n}\n\nreturn [{\n  json: {\n    requestBody: {\n      model: settings.model,\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: user },\n      ],\n      response_format: { type: 'json_schema', json_schema: responseSchema },\n      max_completion_tokens: 3000,\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "9b113e36-482a-4162-9e74-7d698f26ee5a",
+      "name": "OpenAI: create outline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        120
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "OpenAI account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "098657dc-2aa5-45d0-8126-689c10bc49be",
+      "name": "Check outline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// Checks the AI answer and turns it into the document shape used by the frontend.\n// Any problem throws an error -> the workflow answers with a generic \"please try again\".\nconst settings = $('Validate outline input').first().json;\nconst input = settings.input;\nconst res = $input.first().json;\n\nconst choice = res.choices && res.choices[0];\nconst message = choice && choice.message;\nif (!message) throw new Error('OpenAI returned no message: ' + JSON.stringify(res).slice(0, 500));\nif (choice.finish_reason === 'length') throw new Error('Outline was cut off (max_completion_tokens too low).');\n\nfunction rejected(reason) {\n  return [{\n    json: {\n      response: {\n        ok: false,\n        code: 'rejected',\n        message: reason || \"We can't create a lead magnet on this topic. Please try a different one.\",\n      },\n    },\n  }];\n}\n\nif (message.refusal) return rejected();\n\nlet data;\ntry {\n  data = JSON.parse(message.content);\n} catch (e) {\n  throw new Error('AI answer is not valid JSON: ' + String(message.content).slice(0, 500));\n}\n\n// ---------- text helpers ----------\nfunction tidy(value) {\n  return String(value == null ? '' : value)\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(/\\*\\*|__|`/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction cut(value, max) {\n  const v = tidy(value);\n  if (v.length <= max) return v;\n  const short = v.slice(0, max);\n  const space = short.lastIndexOf(' ');\n  return (space > max * 0.6 ? short.slice(0, space) : short).replace(/[\\s,;:.-]+$/, '');\n}\nfunction heading(value) {\n  return cut(String(value || '').replace(/^\\s*(#+|\\d+[.)](?=\\s)|[-*\\u2022](?=\\s))\\s*/, ''), 90);\n}\n\nif (data.status === 'rejected') return rejected(cut(data.reason, 200));\nif (data.status !== 'ok') throw new Error('Unexpected status: ' + data.status);\n\n// ---------- structure rules per format ----------\nconst RULES = {\n  ebook:     { first: ['intro'],   middle: 'chapter', last: ['conclusion'],            min: 4, max: 7 },\n  guide:     { first: ['problem'], middle: 'step',    last: ['mistakes', 'next_step'], min: 3, max: 9 },\n  checklist: { first: [],          middle: 'group',   last: [],                        min: 3, max: 5 },\n};\nconst rule = RULES[input.format];\nconst raw = Array.isArray(data.sections) ? data.sections : [];\nconst types = raw.map(s => s && s.type);\nconst middleCount = types.length - rule.first.length - rule.last.length;\nconst expected = [...rule.first, ...Array(Math.max(middleCount, 0)).fill(rule.middle), ...rule.last];\n\nif (middleCount < rule.min || middleCount > rule.max || types.join() !== expected.join()) {\n  throw new Error(`Outline structure is wrong for ${input.format}: [${types.join(', ')}]`);\n}\n\nconst sections = raw.map((s, i) => ({\n  id: 's' + (i + 1),\n  type: s.type,\n  heading: heading(s.heading),\n  goal: cut(s.goal, 200),\n  keyPoints: (Array.isArray(s.keyPoints) ? s.keyPoints : [])\n    .map(k => cut(String(k).replace(/^\\s*(\\d+[.)](?=\\s)|[-*\\u2022](?=\\s)|\\[ ?\\])\\s*/, ''), 160))\n    .filter(Boolean)\n    .slice(0, 8),\n  status: 'outlined',\n  blocks: [],\n}));\n\nif (sections.some(s => s.heading.length < 2)) throw new Error('A section heading is empty or too short.');\n\n// A checklist must fit on one page: keep at most 20 items in total.\nif (input.format === 'checklist') {\n  let total = sections.reduce((n, s) => n + s.keyPoints.length, 0);\n  while (total > 20) {\n    const biggest = sections.reduce((a, b) => (b.keyPoints.length > a.keyPoints.length ? b : a));\n    biggest.keyPoints.pop();\n    total--;\n  }\n}\n\nconst title = cut(data.title, 90);\nif (!title) throw new Error('Outline has no title.');\n\nconst cta = data.cta || {};\n\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      // The frontend adds \"branding\" before preview/PDF.\n      document: {\n        schemaVersion: '1.0',\n        format: input.format,\n        meta: {\n          topic: input.topic,\n          audience: input.audience,\n          offer: input.offer,\n          tone: input.tone,\n          length: input.length,\n          language: input.language,\n        },\n        title,\n        subtitle: cut(data.subtitle, 160),\n        sections,\n        cta: {\n          heading: cut(cta.heading, 90),\n          text: cut(cta.text, 400),\n          buttonLabel: cut(cta.buttonLabel, 40),\n          url: '',\n        },\n      },\n      generator: {\n        promptVersion: settings.promptVersion,\n        model: res.model || settings.model,\n        tokens: res.usage ? res.usage.total_tokens : null,\n      },\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "ed351d8c-6772-437d-94a3-bef3bd121789",
+      "name": "Attach pass (outline)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// Adds a fresh writing pass to the answer when one was issued.\nconst r = $input.first().json.response;\nconst g = $('Guard').first().json;\nif (r && r.ok && g.newPass) r.pass = g.newPass;\nreturn [{ json: { statusCode: 200, response: r } }];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "af7c3522-07cc-4448-b7d2-c3910623463a",
+      "name": "Validate section input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        620
+      ],
+      "parameters": {
+        "jsCode": "// ===================== SETTINGS (safe to change) =====================\nconst PROMPT_VERSION = 'v2';          // which prompt file to use: section.v2.md\nconst MODEL = 'gpt-4.1-mini';         // OpenAI model used to write sections\nconst REPO_RAW = 'https://raw.githubusercontent.com/mysteriouslyscentedtyrant/lead-magnet-generator/main';\n// =====================================================================\n\n// The page sends { document, sectionId }. \"document\" is the approved outline\n// (written blocks and branding, if present, are ignored). The user may have\n// edited the outline, so everything is checked again here.\n\nconst FORMATS = ['ebook', 'guide', 'checklist'];\nconst TONES = ['friendly', 'professional', 'bold', 'inspiring', 'conversational'];\nconst LENGTHS = ['short', 'standard', 'detailed'];\nconst RULES = {\n  ebook:     { first: ['intro'],   middle: 'chapter', last: ['conclusion'],            min: 4, max: 7 },\n  guide:     { first: ['problem'], middle: 'step',    last: ['mistakes', 'next_step'], min: 3, max: 9 },\n  checklist: { first: [],          middle: 'group',   last: [],                        min: 3, max: 5 },\n};\n\nconst body = $('Webhook').first().json.body || {};\nconst doc = body.document && typeof body.document === 'object' ? body.document : {};\nconst meta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {};\nconst errors = [];\n\n// Same cleaning as the outline workflow: no control/invisible characters,\n// no angle brackets (can't break the prompt tags), no {{ }} (no placeholder injection).\nfunction clean(value) {\n  if (typeof value !== 'string') return '';\n  return value\n    .normalize('NFKC')\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(/[<>]/g, ' ')\n    .replace(/\\{\\{|\\}\\}/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction text(value, label, min, max) {\n  const v = clean(value);\n  if (v.length < min) errors.push(`${label} must be at least ${min} characters.`);\n  else if (v.length > max) errors.push(`${label} must be ${max} characters or less.`);\n  return v;\n}\nfunction choice(value, label, allowed, fallback) {\n  if ((value === undefined || value === null || value === '') && fallback !== undefined) return fallback;\n  const v = String(value == null ? '' : value).trim().toLowerCase();\n  if (!allowed.includes(v)) { errors.push(`${label} must be one of: ${allowed.join(', ')}.`); return ''; }\n  return v;\n}\n\nconst format = choice(doc.format, 'Format', FORMATS);\nconst topic = text(meta.topic, 'Topic', 3, 200);\nconst audience = text(meta.audience, 'Audience', 3, 400);\nconst offer = text(meta.offer || '', 'Offer', 0, 300);\nconst tone = choice(meta.tone, 'Tone', TONES, 'friendly');\nconst length = choice(meta.length, 'Length', LENGTHS, 'standard');\nlet language = clean(meta.language || '') || 'English';\nif (!/^[\\p{L} ()-]{2,30}$/u.test(language)) errors.push('Language must be a language name such as English or French.');\n\nconst title = text(doc.title, 'Title', 3, 90);\nconst subtitle = text(doc.subtitle || '', 'Subtitle', 0, 160);\n\nconst rawSections = Array.isArray(doc.sections) ? doc.sections : [];\nif (rawSections.length < 1 || rawSections.length > 12) errors.push('The outline must have between 1 and 12 sections.');\n\nconst sections = rawSections.slice(0, 12).map((s, i) => {\n  s = s && typeof s === 'object' ? s : {};\n  const n = i + 1;\n  const id = typeof s.id === 'string' && /^s[0-9]{1,2}$/.test(s.id) ? s.id : '';\n  if (!id) errors.push(`Section ${n} has an invalid id.`);\n  const keyPoints = Array.isArray(s.keyPoints) ? s.keyPoints : [];\n  if (keyPoints.length > 8) errors.push(`Section ${n} has more than 8 key points.`);\n  return {\n    id,\n    type: String(s.type || ''),\n    heading: text(s.heading, `Section ${n} heading`, 2, 90),\n    goal: text(s.goal || '', `Section ${n} goal`, 0, 200),\n    keyPoints: keyPoints.slice(0, 8).map((k, j) => text(k, `Section ${n} key point ${j + 1}`, 1, 160)),\n  };\n});\n\nconst ids = sections.map(s => s.id);\nif (new Set(ids).size !== ids.length) errors.push('Section ids must be unique.');\n\nif (format) {\n  const rule = RULES[format];\n  const types = sections.map(s => s.type);\n  const middle = types.length - rule.first.length - rule.last.length;\n  const expected = [...rule.first, ...Array(Math.max(middle, 0)).fill(rule.middle), ...rule.last];\n  if (middle < rule.min || middle > rule.max || types.join() !== expected.join()) {\n    errors.push(`A ${format} needs ${rule.first.concat([`${rule.min}-${rule.max} x ${rule.middle}`], rule.last).join(', ')} sections in that order.`);\n  }\n}\n\nconst sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';\nconst index = sections.findIndex(s => s.id === sectionId);\nif (index === -1) errors.push('sectionId does not match any section in the outline.');\n\nif (errors.length) {\n  return [{ json: { ok: false, statusCode: 400, response: { ok: false, code: 'invalid_input', message: errors.slice(0, 5).join(' ') } } }];\n}\n\nconst target = sections[index];\nconst outline = sections\n  .map((s, i) => `${i + 1}. [${s.type}] ${s.heading}${i === index ? '   [THIS SECTION]' : ''}`)\n  .join('\\n');\n\nreturn [{\n  json: {\n    ok: true,\n    format,\n    sectionId,\n    sectionType: target.type,\n    length,\n    model: MODEL,\n    promptVersion: PROMPT_VERSION,\n    promptUrl: `${REPO_RAW}/prompts/section.${PROMPT_VERSION}.md`,\n    schemaUrl: `${REPO_RAW}/schema/section.response.schema.json`,\n    vars: {\n      format, title, subtitle, audience,\n      offer: offer || 'Not provided',\n      tone, length, language,\n      outline,\n      position: `${index + 1} of ${sections.length}`,\n      section_type: target.type,\n      section_heading: target.heading,\n      section_goal: target.goal || '(no goal given)',\n      section_key_points: target.keyPoints.length ? target.keyPoints.map(k => '- ' + k).join('\\n') : '- (no key points given: cover the heading)',\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "3883de2f-6ea1-42c2-8efd-4f3c54d0704f",
+      "name": "Section input OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        620
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "e4346fb7-6090-40c1-aa17-231bea5fe0b4",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2f6da880-9f23-48b5-9635-cb818047acb4",
+      "name": "Load section prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        720
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $json.promptUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "471b8fb8-f610-439f-85e3-f02961fc1596",
+      "name": "Load section schema",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        720
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $('Validate section input').first().json.schemaUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "1ef1f179-5d2e-4088-9240-4548a0e83b54",
+      "name": "Build section request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        720
+      ],
+      "parameters": {
+        "jsCode": "// Builds the OpenAI request from the section prompt and response schema loaded from GitHub.\nconst settings = $('Validate section input').first().json;\nconst promptText = String($('Load section prompt').first().json.data || '').replace(/\\r\\n/g, '\\n');\nconst schemaText = $('Load section schema').first().json.data;\n\n// Split the prompt file into its SYSTEM and USER parts.\nconst sysMarker = '===SYSTEM===';\nconst userMarker = '===USER===';\nconst sysAt = promptText.indexOf(sysMarker);\nconst userAt = promptText.indexOf(userMarker);\nif (sysAt === -1 || userAt === -1 || userAt < sysAt) {\n  throw new Error('Prompt file is missing the ===SYSTEM=== or ===USER=== marker: ' + settings.promptUrl);\n}\nconst system = promptText.slice(sysAt + sysMarker.length, userAt).trim();\nconst userTemplate = promptText.slice(userAt + userMarker.length).trim();\n\n// Fill {{placeholders}} in ONE pass, so text typed by a user is never re-read as a placeholder.\nconst vars = settings.vars;\nconst user = userTemplate.replace(/\\{\\{(\\w+)\\}\\}/g, (match, key) => {\n  if (!(key in vars)) throw new Error('Prompt uses an unknown placeholder: ' + match);\n  return vars[key];\n});\n\nlet responseSchema;\ntry {\n  responseSchema = typeof schemaText === 'string' ? JSON.parse(schemaText) : schemaText;\n} catch (e) {\n  throw new Error('Response schema is not valid JSON: ' + settings.schemaUrl);\n}\n\nreturn [{\n  json: {\n    requestBody: {\n      model: settings.model,\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: user },\n      ],\n      response_format: { type: 'json_schema', json_schema: responseSchema },\n      max_completion_tokens: 3500,\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "7868d0da-90f0-43b1-a0e0-a5fad1d1422b",
+      "name": "OpenAI: write section",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        720
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "OpenAI account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "830ea96f-2cf1-4d31-b905-a86a41ad246a",
+      "name": "Check section",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        720
+      ],
+      "parameters": {
+        "jsCode": "// Checks the AI answer for ONE section and cleans every block.\n// Any problem throws an error -> the workflow answers with a generic \"please try again\".\nconst settings = $('Validate section input').first().json;\nconst res = $input.first().json;\n\nconst choice = res.choices && res.choices[0];\nconst message = choice && choice.message;\nif (!message) throw new Error('OpenAI returned no message: ' + JSON.stringify(res).slice(0, 500));\nif (choice.finish_reason === 'length') throw new Error('Section was cut off (max_completion_tokens too low).');\n\nif (message.refusal) {\n  return [{ json: { response: { ok: false, code: 'rejected', sectionId: settings.sectionId,\n    message: \"We can't write this section. Please edit its heading or key points and try again.\" } } }];\n}\n\nlet data;\ntry { data = JSON.parse(message.content); }\ncatch (e) { throw new Error('AI answer is not valid JSON: ' + String(message.content).slice(0, 500)); }\n\n// ---------- text helpers ----------\nconst URL_RE = /\\b(?:https?:\\/\\/|www\\.)\\S+/gi;\nconst EMAIL_RE = /\\b[\\w.+-]+@[\\w-]+\\.[\\w.-]+\\b/g;\nfunction tidy(value) {\n  return String(value == null ? '' : value)\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(URL_RE, '')\n    .replace(EMAIL_RE, '')\n    .replace(/\\*\\*|__|`/g, '')\n    .replace(/^\\s*#{1,6}\\s+/, '')\n    .replace(/\\s+/g, ' ')\n    .replace(/\\s+([,.;:!?])/g, '$1')\n    .trim();\n}\nfunction cut(value, max) {\n  const v = tidy(value);\n  if (v.length <= max) return v;\n  const short = v.slice(0, max);\n  const space = short.lastIndexOf(' ');\n  return (space > max * 0.6 ? short.slice(0, space) : short).replace(/[\\s,;:-]+$/, '');\n}\n// List items: also drop leading bullets, numbers and checkboxes the design adds itself.\nfunction item(value) {\n  return cut(String(value == null ? '' : value).replace(/^\\s*(\\d+[.)](?=\\s)|[-*\\u2022\\u2013](?=\\s)|\\[[ xX]?\\]|\\u2610|\\u2611)\\s*/, ''), 300);\n}\n\nconst TEXT_TYPES = ['paragraph', 'subheading', 'tip', 'warning', 'example'];\nconst LIST_TYPES = ['bullets', 'steps', 'checklist'];\n\nlet blocks = (Array.isArray(data.blocks) ? data.blocks : []).map(b => {\n  b = b && typeof b === 'object' ? b : {};\n  const type = String(b.type || '');\n  const items = (Array.isArray(b.items) ? b.items : []).map(item).filter(Boolean).slice(0, 15);\n  if (TEXT_TYPES.includes(type)) {\n    const t = cut(b.text, type === 'subheading' ? 90 : 1500);\n    return t ? { type, text: t, items: [] } : null;\n  }\n  if (LIST_TYPES.includes(type)) {\n    return items.length ? { type, text: cut(b.text, 300), items } : null;\n  }\n  if (type === 'template') {\n    return items.length ? { type, text: cut(b.text, 120) || 'Template', items } : null;\n  }\n  return null;\n}).filter(Boolean).slice(0, 30);\n\n// A checklist group is exactly ONE checklist block of short items.\nif (settings.sectionType === 'group') {\n  const all = blocks.filter(b => b.type === 'checklist').flatMap(b => b.items);\n  const seen = new Set();\n  const unique = all\n    .map(i => cut(i, 120))\n    .filter(i => { const k = i.toLowerCase(); if (!i || seen.has(k)) return false; seen.add(k); return true; })\n    .slice(0, 6);\n  if (unique.length < 3) throw new Error('Checklist group has fewer than 3 items.');\n  blocks = [{ type: 'checklist', text: '', items: unique }];\n}\n\n// Never start a section with a subheading only, never end on one.\nwhile (blocks.length && blocks[blocks.length - 1].type === 'subheading') blocks.pop();\nif (!blocks.length) throw new Error('Section has no usable content blocks.');\n\nconst words = blocks.reduce((n, b) => n + [b.text, ...b.items].join(' ').split(/\\s+/).filter(Boolean).length, 0);\n\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      sectionId: settings.sectionId,\n      blocks,\n      generator: {\n        promptVersion: settings.promptVersion,\n        model: res.model || settings.model,\n        tokens: res.usage ? res.usage.total_tokens : null,\n        words,\n      },\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "e4e7191b-3924-4890-96f8-44d764ad5901",
+      "name": "Attach pass (section)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        720
+      ],
+      "parameters": {
+        "jsCode": "// Adds a fresh writing pass to the answer when one was issued.\nconst r = $input.first().json.response;\nconst g = $('Guard').first().json;\nif (r && r.ok && g.newPass) r.pass = g.newPass;\nreturn [{ json: { statusCode: 200, response: r } }];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "673246cc-25b1-44c6-92e5-64b0a2f8be70",
+      "name": "Respond: success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3540,
+        400
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b11f8aaf-6fda-4a79-934c-017061e9d64a",
+      "name": "Respond: error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "fa14e8a3-b481-480d-b13b-aafd8086dee9",
+      "name": "Respond: generation failed (502)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3540,
+        620
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": false, \"code\": \"generation_failed\", \"message\": \"We couldn't finish this right now. Please try again in a minute.\"}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "f3af02cf-537d-40f9-96c6-3ca3f5c92c21",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -120
+      ],
+      "parameters": {
+        "width": 1040,
+        "height": 380,
+        "color": 4,
+        "content": "## Lead Magnet API (v3, protected)\nOne webhook: `/webhook/lead-magnet/outline`, `/section` and `/pass` (fresh writing pass, no AI).\n\n**Setup after import**\n1. Open **OpenAI: create outline** and **OpenAI: write section**, select your OpenAI credential in both.\n2. Open **Guard**: paste your Cloudflare Turnstile **Secret Key** in `TURNSTILE_SECRET` (leave '' to keep the human check off).\n3. Deactivate the old *Outline* and *Section* workflows, then **Save** and **Activate** this one.\n\n**Settings** at the top of **Guard**: allowed pages, daily limit (1,000), per-visitor limits, pass lifetime.\nModel and prompt version: top of **Validate outline input** / **Validate section input**.\n\nSuccessful runs are not stored (visitor privacy); failed runs are kept in Executions for debugging.\nCounters live in this workflow's static data and reset by themselves (hourly per visitor, daily overall)."
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Human check needed?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human check needed?": {
+      "main": [
+        [
+          {
+            "node": "Verify Turnstile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pass only?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass only?": {
+      "main": [
+        [
+          {
+            "node": "Pass answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Outline or section?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass answer": {
+      "main": [
+        [
+          {
+            "node": "Respond: success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Turnstile": {
+      "main": [
+        [
+          {
+            "node": "Check Turnstile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Turnstile": {
+      "main": [
+        [
+          {
+            "node": "Human?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human?": {
+      "main": [
+        [
+          {
+            "node": "Pass only?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outline or section?": {
+      "main": [
+        [
+          {
+            "node": "Validate outline input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate section input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate outline input": {
+      "main": [
+        [
+          {
+            "node": "Outline input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outline input OK?": {
+      "main": [
+        [
+          {
+            "node": "Load outline prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load outline prompt": {
+      "main": [
+        [
+          {
+            "node": "Load outline schema",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load outline schema": {
+      "main": [
+        [
+          {
+            "node": "Build outline request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build outline request": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: create outline",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: create outline": {
+      "main": [
+        [
+          {
+            "node": "Check outline",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check outline": {
+      "main": [
+        [
+          {
+            "node": "Attach pass (outline)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach pass (outline)": {
+      "main": [
+        [
+          {
+            "node": "Respond: success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate section input": {
+      "main": [
+        [
+          {
+            "node": "Section input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Section input OK?": {
+      "main": [
+        [
+          {
+            "node": "Load section prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load section prompt": {
+      "main": [
+        [
+          {
+            "node": "Load section schema",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load section schema": {
+      "main": [
+        [
+          {
+            "node": "Build section request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build section request": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: write section",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: write section": {
+      "main": [
+        [
+          {
+            "node": "Check section",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check section": {
+      "main": [
+        [
+          {
+            "node": "Attach pass (section)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach pass (section)": {
+      "main": [
+        [
+          {
+            "node": "Respond: success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
