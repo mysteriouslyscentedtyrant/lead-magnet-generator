@@ -170,7 +170,11 @@
           "maxLength": 700000,
           "pattern": "^(data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)?$"
         },
-        "authorName": { "type": "string", "maxLength": 80 }
+        "authorName": { "type": "string", "maxLength": 80 },
+        "pageSize": {
+          "description": "PDF page size. Optional; defaults to Letter for US/Canada browsers and A4 elsewhere.",
+          "enum": ["A4", "Letter"]
+        }
       }
     },
 

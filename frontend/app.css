@@ -343,6 +343,79 @@
 .lmg-live.is-thinking .lmg-live-cover { animation: lmg-breathe 1.6s ease-in-out infinite; }
 @keyframes lmg-breathe { 50% { transform: translateY(-4px); } }
 
+/* ---------- Design step ---------- */
+.lmg-body--wide { grid-template-columns: minmax(0, 1fr); }
+.lmg-design { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 40px; align-items: start; }
+.lmg-design-controls { display: grid; gap: 30px; }
+.lmg-ctrl { display: grid; gap: 12px; }
+.lmg-ctrl-title { color: var(--lmg-ink); font-size: 16px; font-weight: 600; }
+.lmg-ctrl--download { padding: 18px; border-radius: var(--lmg-radius-card); background: var(--lmg-mist); gap: 10px; }
+.lmg-ctrl--download .lmg-notice { margin-top: 4px; }
+.lmg .lmg-btn--block { width: 100%; }
+
+.lmg-tpls { display: grid; gap: 10px; }
+.lmg-tpls > button, .lmg-swatches > button, .lmg-fonts > button {
+  font: inherit; text-align: left; cursor: pointer; color: var(--lmg-slate);
+  border: 1.5px solid var(--lmg-line); background: var(--lmg-paper); border-radius: 12px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.lmg-tpls > button:hover, .lmg-swatches > button:hover, .lmg-fonts > button:hover { border-color: var(--lmg-line-strong); }
+.lmg-tpls > button[aria-checked="true"], .lmg-swatches > button[aria-checked="true"], .lmg-fonts > button[aria-checked="true"] { border-color: var(--lmg-ink); background: var(--lmg-mist); }
+.lmg-tpls > button:focus-visible, .lmg-swatches > button:focus-visible, .lmg-fonts > button:focus-visible { outline: none; box-shadow: var(--lmg-focus); }
+.lmg-tpls > button { display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; column-gap: 14px; align-items: center; padding: 10px 12px; }
+.lmg-thumb { grid-row: 1 / span 2; position: relative; width: 52px; height: 68px; border-radius: 3px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--lmg-line), 0 2px 6px rgba(24,28,57,.10); }
+.lmg-thumb i { position: absolute; display: block; border-radius: 1px; }
+.lmg-thumb--clean i:nth-child(1) { left: 7px; top: 26px; width: 9px; height: 2px; background: var(--ta); }
+.lmg-thumb--clean i:nth-child(2) { left: 7px; top: 31px; width: 30px; height: 4px; background: var(--tp); }
+.lmg-thumb--clean i:nth-child(3) { right: 0; top: 0; width: 5px; height: 100%; background: var(--tp); border-radius: 0; }
+.lmg-thumb--bold { background: var(--tp); }
+.lmg-thumb--bold i:nth-child(1) { left: 7px; top: 22px; width: 30px; height: 5px; background: #fff; }
+.lmg-thumb--bold i:nth-child(2) { left: 7px; top: 30px; width: 20px; height: 5px; background: #fff; }
+.lmg-thumb--bold i:nth-child(3) { right: -16px; bottom: -16px; width: 44px; height: 44px; border-radius: 50%; background: var(--ta); }
+.lmg-thumb--editorial { background: #fafafa; }
+.lmg-thumb--editorial i:nth-child(1) { left: 5px; right: 5px; top: 5px; height: 1px; background: var(--tp); }
+.lmg-thumb--editorial i:nth-child(2) { left: 11px; right: 11px; top: 29px; height: 5px; background: var(--tp); }
+.lmg-thumb--editorial i:nth-child(3) { left: 5px; right: 5px; bottom: 5px; height: 1px; background: var(--tp); }
+.lmg-tpl-name { color: var(--lmg-ink); font-weight: 600; font-size: 15px; align-self: end; }
+.lmg-tpl-desc { font-size: 13.5px; line-height: 1.4; align-self: start; }
+
+.lmg-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lmg-swatches > button { display: flex; align-items: center; gap: 0; padding: 8px 10px; }
+.lmg-swatch-dot { width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; flex: none; }
+.lmg-swatch-dot--a { margin-left: -5px; }
+.lmg-swatch-name { margin-left: 8px; font-size: 14px; color: var(--lmg-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lmg-color-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.lmg-color-field { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.lmg .lmg-color { width: 34px; height: 34px; padding: 2px; border: 1.5px solid var(--lmg-line); border-radius: 9px; background: #fff; cursor: pointer; }
+.lmg .lmg-color:focus-visible { outline: none; box-shadow: var(--lmg-focus); }
+
+.lmg-fonts { display: grid; gap: 8px; }
+.lmg-fonts > button { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+.lmg-font-name { color: var(--lmg-ink); font-size: 19px; line-height: 1.2; }
+.lmg-font-meta { font-size: 13px; color: var(--lmg-soft); text-align: right; }
+
+.lmg-brand { display: grid; gap: 14px; }
+.lmg-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.lmg-logo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lmg-logo-preview { max-height: 40px; max-width: 140px; object-fit: contain; padding: 4px; border-radius: 8px; background: var(--lmg-mist); }
+.lmg-ctrl .lmg-field + .lmg-field { margin-top: 4px; }
+.lmg-ctrl > div + .lmg-field { margin-top: 8px; }
+
+.lmg-design-preview { position: sticky; top: 16px; min-width: 0; border-radius: var(--lmg-radius-card); background: #DFE2EA; overflow: hidden; }
+.lmg-design-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--lmg-paper); border: 1.5px solid var(--lmg-line); border-bottom: 0; border-radius: var(--lmg-radius-card) var(--lmg-radius-card) 0 0; }
+.lmg-preview-frame { display: block; width: 100%; height: min(860px, calc(100vh - 90px)); min-height: 520px; border: 1.5px solid var(--lmg-line); border-top: 0; border-radius: 0 0 var(--lmg-radius-card) var(--lmg-radius-card); background: #DFE2EA; }
+.lmg-preview-frame:focus-visible { outline: none; box-shadow: var(--lmg-focus); }
+
+@media (max-width: 920px) {
+  .lmg-design { grid-template-columns: 1fr; gap: 28px; }
+  .lmg-design-preview { position: static; order: -1; }
+  .lmg-preview-frame { height: 620px; min-height: 0; }
+}
+@media (max-width: 640px) {
+  .lmg-swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lmg-preview-frame { height: 520px; }
+}
+
 /* ---------- Footer note ---------- */
 .lmg-foot { margin-top: 56px; font-size: 14px; color: var(--lmg-soft); }
 

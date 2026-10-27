@@ -35,6 +35,7 @@ The OpenAI API key exists **only** inside n8n credentials. The frontend never se
 | 2026-10-27 | AI content is plain-text blocks, never HTML/Markdown. | Templates escape everything, so neither users nor the AI can inject scripts or links. |
 | 2026-10-27 | AI model chosen in n8n, not in prompts. | Swap models without touching prompt files. Start with a low-cost model and upgrade if quality needs it. |
 | 2026-10-27 | Optional `offer` input (outline prompts v2). | Live test showed CTAs guessing the offer (e.g. an invented webinar) and titles restating the topic. |
+| 2026-10-27 | PDF via native browser paged media, no pagination library. | Current Chrome supports page size, named pages and page-number margin boxes; no extra dependency, and the output was tested with Chrome's own PDF engine. Firefox prints the same layout without page numbers. |
 | 2026-10-27 | Repo is public. | n8n reads prompts with no token; jsDelivr can serve the frontend for free. No secrets live in the repo. |
 | 2026-10-27 | OpenAI called with the HTTP Request node (OpenAI credential), not the OpenAI node. | Full control of strict JSON-schema output, independent of n8n node versions. Starting model: `gpt-4.1-mini`. |
 
@@ -83,13 +84,15 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 | File | What it is |
 |---|---|
 | `widget.html` | **The snippet to paste** into a systeme.io Raw HTML element. Loads the pinned release from jsDelivr with integrity hashes. |
-| `app.js` | The whole tool: steps, outline editor, parallel section writing (3 at a time), autosave in the browser, live document preview, plain content preview. |
+| `app.js` | The whole tool: steps, outline editor, parallel section writing (3 at a time), autosave in the browser, live document preview, design step (3 templates, 6 palettes + custom colors, 5 font pairs, logo, brand name, CTA link, A4/Letter) with a live page preview, and PDF export. |
 | `app.css` | Styles, all scoped under `.lmg` with a zero-weight `:where()` reset so the page's own CSS can't break the tool. |
 | `probe.html` / `probe.js` | One-off page check (scripts, iframe, jsDelivr, fonts, CORS). Not needed in production. |
 
 Options on `<div id="lead-magnet-generator">`: `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3).
 
-Security: every piece of user or AI text is inserted with `textContent`, never as HTML. The only `innerHTML` is for fixed icon SVGs.
+Security: every piece of user or AI text is inserted with `textContent`, never as HTML. The only `innerHTML` is for fixed icon SVGs. Logos are re-drawn through a canvas (strips anything hidden in the file) and kept in the browser only. The CTA link must be `http(s)://`. Brand text placed in the PDF footer is escaped as a CSS string.
+
+**How the PDF works:** the document is rendered into a hidden, print-only frame with the browser's native paged media: `@page` size (A4 or Letter), a full-bleed cover (named page with no margins), each ebook chapter on a new page, running footer with brand name and page number, a one-page checklist that scales its text to the number of items. The browser's print window opens and the user picks "Save as PDF". Colors stay readable for any custom palette: text on colored areas switches between white and dark, and colors too light to read on white are darkened automatically.
 
 **Releasing a new frontend version**
 1. Change `frontend/app.js` / `app.css`, bump `VERSION` in `app.js`.
@@ -153,6 +156,6 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 2** — n8n outline workflow (live-tested 2026-10-27: all 3 formats + invalid input, ~4–5 s per outline)
 - [x] **Phase 3** — n8n section workflow (end-to-end tested 2026-10-27: ebook 6 sections in 15 s, French guide 8 sections in 17 s, checklist 4 groups in 8 s, 3 sections in parallel, 0 failures)
 - [x] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress) — `v0.1.0`; step 5 shows a plain preview until Phase 5
-- [ ] **Phase 5** — 3 design templates, live preview, customization
-- [ ] **Phase 6** — PDF export (print CSS)
+- [x] **Phase 5** — 3 design templates, live preview, customization — `v0.2.0`
+- [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
 - [ ] **Phase 7** — hardening: Turnstile, rate limit, origin check, error states, mobile pass
