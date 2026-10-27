@@ -94,7 +94,7 @@ Security: every piece of user or AI text is inserted with `textContent`, never a
 **Releasing a new frontend version**
 1. Change `frontend/app.js` / `app.css`, bump `VERSION` in `app.js`.
 2. Regenerate `widget.html` with the new tag and new integrity hashes (`openssl dgst -sha384 -binary file | openssl base64 -A`).
-3. Commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Commit and push, then pin `widget.html` to that commit's full SHA (`@<sha>` in both jsDelivr URLs) and commit again. A commit SHA never changes, so the hashes always match. (This session can't push git tags; a GitHub release tag `vX.Y.Z` can be used instead when created from github.com.)
 4. Paste the new `widget.html` into systeme.io and republish. Old pages keep working on their pinned version until then.
 
 ## n8n workflows (`/n8n`)
