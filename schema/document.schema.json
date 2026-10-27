@@ -125,6 +125,10 @@
         "heading": { "type": "string", "maxLength": 90 },
         "text": { "type": "string", "maxLength": 400 },
         "buttonLabel": { "type": "string", "maxLength": 40 },
+        "showUrl": {
+          "description": "Optional. true = print the link address under the button (for paper copies). Default false.",
+          "type": "boolean"
+        },
         "url": {
           "description": "Only http(s) links are allowed, so no javascript: or data: links can end up in the PDF.",
           "type": "string",

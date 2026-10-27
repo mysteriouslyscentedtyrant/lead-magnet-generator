@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.3.0';
+  var VERSION = '0.3.1';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -263,13 +263,16 @@
     render();
     var i = state.input;
     var signal = outlineAbort.signal;
+    state.checking = !!config.sitekey;
+    if (state.checking) render();
     getHumanToken().then(function (token) {
+      if (state.checking) { state.checking = false; render(); }
       if (signal.aborted) return { ok: false, code: 'aborted' };
       return api('outline', {
         format: state.format, topic: i.topic.trim(), audience: i.audience.trim(), offer: i.offer.trim(),
         tone: i.tone, length: i.length, language: languageValue(), turnstile: token || undefined
       }, signal);
-    }, function (e) { return { ok: false, code: 'human', message: humanError(e) }; }).then(function (r) {
+    }, function (e) { state.checking = false; return { ok: false, code: 'human', message: humanError(e) }; }).then(function (r) {
       outlineAbort = null; state.busy = null;
       if (r.code === 'aborted') { render(); return; }
       if (!r.ok) { state.notice = { kind: 'error', text: errorText(r, 'create your outline') }; render(); return; }
@@ -660,7 +663,7 @@
       h('div', { class: 'lmg-actions' }, [
         hasWritten && !busy
           ? confirmButton('Create a new outline', 'Click again: this replaces your written content', createOutline)
-          : button(busy ? 'Creating your outline\u2026' : (hasOutline ? 'Create a new outline' : 'Create outline'), { busy: busy, disabled: busy, onClick: createOutline }),
+          : button(busy ? (state.checking ? 'Checking you\u2019re human\u2026' : 'Creating your outline\u2026') : (hasOutline ? 'Create a new outline' : 'Create outline'), { busy: busy, disabled: busy, onClick: createOutline }),
         busy ? button('Cancel', { kind: 'quiet', onClick: cancelOutline }) : null,
         !busy && hasOutline ? button('Keep my current outline', { kind: 'ghost', onClick: function () { goTo(3); } }) : null,
         h('span', { class: 'lmg-actions-spacer' }),
@@ -942,7 +945,7 @@
     dlBtn.classList.add('lmg-btn--block');
     var download = h('div', { class: 'lmg-ctrl lmg-ctrl--download' }, [
       dlBtn,
-      h('p', { class: 'lmg-help', text: 'Your browser\'s print window opens. Choose "Save as PDF" as the destination.' }),
+      h('p', { class: 'lmg-help', text: 'Your browser\'s print window opens. Choose "Save as PDF" as the destination (not "Microsoft Print to PDF"), so your button stays clickable.' }),
       notice(state.notice)
     ]);
 
@@ -1039,6 +1042,12 @@
       field({ key: 'cta-h2', label: 'Heading', limit: LIMITS.ctaHeading[1], get: function () { return c.heading; }, set: function (v) { c.heading = v; }, onChange: schedulePreview }),
       field({ key: 'cta-t2', label: 'Text', limit: LIMITS.ctaText[1], multiline: true, rows: 3, get: function () { return c.text; }, set: function (v) { c.text = v; }, onChange: schedulePreview })
     ];
+    var showUrlId = uid('lmg-cb-');
+    ctaFields.splice(1, 0, h('label', { class: 'lmg-check', for: showUrlId }, [
+      h('input', { type: 'checkbox', id: showUrlId, checked: c.showUrl ? 'checked' : null,
+        onchange: function (ev) { c.showUrl = !!ev.target.checked; save(); schedulePreview(); } }),
+      h('span', { text: 'Show the link under the button (useful if people print the PDF)' })
+    ]));
     var urlInput = ctaFields[0].querySelector('input');
     urlInput.setAttribute('inputmode', 'url'); urlInput.setAttribute('spellcheck', 'false');
     urlInput.addEventListener('blur', function () {
@@ -1235,8 +1244,10 @@
           ]));
         document.body.appendChild(panel);
         var widget = null, done = false;
-        // Show the panel only if the check takes a moment (most visitors never see it).
-        var showTimer = setTimeout(function () { panel.classList.add('is-visible'); }, 900);
+        // The panel only appears when Cloudflare asks for a click (most visitors never see it).
+        // Fallback after 12 s so a stuck check can always be cancelled.
+        var showTimer = setTimeout(function () { panel.classList.add('is-visible'); }, 12000);
+        function show() { clearTimeout(showTimer); panel.classList.add('is-visible'); var c = panel.querySelector('iframe') || cancel; try { c.focus(); } catch (e) { /* ignore */ } }
         function finish(fn, value) {
           if (done) return; done = true;
           clearTimeout(showTimer);
@@ -1249,7 +1260,8 @@
             sitekey: config.sitekey, action: 'lead_magnet', appearance: 'interaction-only',
             callback: function (token) { finish(resolve, token); },
             'error-callback': function () { finish(reject, new Error('turnstile')); },
-            'expired-callback': function () { /* a new token is issued automatically */ }
+            'expired-callback': function () { /* a new token is issued automatically */ },
+            'before-interactive-callback': show
           });
         } catch (e) { finish(reject, e); }
       });
@@ -1629,7 +1641,7 @@
         c.heading ? x('h2', { text: c.heading }) : null,
         c.text ? x('p', { class: 'lmt-cta-text', text: c.text }) : null,
         btn,
-        shortUrl ? x('span', { class: 'lmt-cta-url', text: shortUrl }) : null
+        shortUrl && c.showUrl ? x('span', { class: 'lmt-cta-url', text: shortUrl }) : null
       ]));
     }
     function cover() {
