@@ -395,6 +395,9 @@
 .lmg-font-meta { font-size: 13px; color: var(--lmg-soft); text-align: right; }
 
 .lmg-brand { display: grid; gap: 14px; }
+.lmg-check { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.45; color: var(--lmg-slate); cursor: pointer; margin-top: 2px; }
+.lmg .lmg-check input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--lmg-ink); cursor: pointer; }
+.lmg .lmg-check input:focus-visible { outline: none; box-shadow: var(--lmg-focus); border-radius: 4px; }
 .lmg-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .lmg-logo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lmg-logo-preview { max-height: 40px; max-width: 140px; object-fit: contain; padding: 4px; border-radius: 8px; background: var(--lmg-mist); }
