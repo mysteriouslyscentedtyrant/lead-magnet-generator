@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "format": "checklist",
+  "meta": {
+    "topic": "Launching a first online course",
+    "audience": "Coaches who have never sold an online course and are worried about launching to a small email list",
+    "tone": "friendly",
+    "length": "short",
+    "language": "English"
+  },
+  "title": "The Pre-Launch Checklist for Your First Online Course",
+  "subtitle": "Use it in the 2 weeks before you open the doors.",
+  "sections": [
+    {
+      "id": "s1",
+      "type": "group",
+      "heading": "Your Offer",
+      "goal": "The reader will have a clear, sellable course offer.",
+      "keyPoints": [],
+      "status": "written",
+      "blocks": [
+        {
+          "type": "checklist",
+          "text": "",
+          "items": [
+            "Write your course promise in one sentence",
+            "List the 3 problems your course solves",
+            "Set your launch price and an end date for it",
+            "Outline every module on a single page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "group",
+      "heading": "Your Sales Page",
+      "goal": "The reader will have a sales page ready to take payments.",
+      "keyPoints": [],
+      "status": "written",
+      "blocks": [
+        {
+          "type": "checklist",
+          "text": "",
+          "items": [
+            "Put your promise in the page headline",
+            "Add one section per module with its outcome",
+            "Answer the 5 questions buyers ask you most",
+            "Make a test purchase before launch day"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "group",
+      "heading": "Launch Week",
+      "goal": "The reader will have a simple email plan for launch week.",
+      "keyPoints": [],
+      "status": "outlined",
+      "blocks": []
+    }
+  ],
+  "cta": {
+    "heading": "Want Help With Your Launch?",
+    "text": "Book a free 20-minute call and we will map out your launch week together.",
+    "buttonLabel": "Book Your Free Call",
+    "url": "https://example.com/book"
+  },
+  "branding": {
+    "templateId": "clean",
+    "colors": {
+      "primary": "#181C39",
+      "accent": "#3D7BF7",
+      "text": "#5E6075",
+      "background": "#FFFFFF"
+    },
+    "fonts": {
+      "heading": "Outfit",
+      "body": "Outfit"
+    },
+    "logoDataUrl": "",
+    "authorName": "Jane Doe Coaching"
+  }
+}

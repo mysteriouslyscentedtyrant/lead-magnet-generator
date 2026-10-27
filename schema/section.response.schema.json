@@ -1,0 +1,30 @@
+{
+  "name": "lead_magnet_section",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["blocks"],
+    "properties": {
+      "blocks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text", "items"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["paragraph", "subheading", "bullets", "steps", "checklist", "tip", "warning", "example", "template"]
+            },
+            "text": { "type": "string" },
+            "items": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

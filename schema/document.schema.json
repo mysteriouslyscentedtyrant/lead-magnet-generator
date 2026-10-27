@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mysteriouslyscentedtyrant/lead-magnet-generator/schema/document.schema.json",
+  "title": "Lead Magnet Document",
+  "description": "The single data shape shared by every step: outline (n8n) -> section writing (n8n) -> preview and PDF (frontend templates). Content is plain text only, never HTML or Markdown; templates escape it before display.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "format", "meta", "title", "subtitle", "sections", "cta", "branding"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Bump the major number when a change would break existing templates.",
+      "const": "1.0"
+    },
+    "format": {
+      "enum": ["ebook", "guide", "checklist"]
+    },
+    "meta": {
+      "description": "What the user typed in step 2. Kept so a section can be regenerated later with the same context.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic", "audience", "tone", "length", "language"],
+      "properties": {
+        "topic": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "audience": { "type": "string", "minLength": 3, "maxLength": 400 },
+        "tone": { "enum": ["friendly", "professional", "bold", "inspiring", "conversational"] },
+        "length": { "enum": ["short", "standard", "detailed"] },
+        "language": {
+          "description": "Language the content is written in, as a plain name (e.g. English, French, Arabic).",
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 30
+        }
+      }
+    },
+    "title": {
+      "description": "Must state a clear promise (what the reader gets or achieves).",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 90
+    },
+    "subtitle": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "sections": {
+      "description": "Ordered sections. Allowed types depend on the format: ebook = intro, chapter (4-7), conclusion; guide = problem, step (3-9), mistakes, next_step; checklist = group (3-5).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/section" }
+    },
+    "cta": { "$ref": "#/$defs/cta" },
+    "branding": { "$ref": "#/$defs/branding" }
+  },
+
+  "$defs": {
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "heading", "goal", "keyPoints", "status", "blocks"],
+      "properties": {
+        "id": {
+          "description": "Stable id assigned when the outline is created (s1, s2, ...). Never reused.",
+          "type": "string",
+          "pattern": "^s[0-9]{1,2}$"
+        },
+        "type": {
+          "enum": ["intro", "chapter", "conclusion", "problem", "step", "mistakes", "next_step", "group"]
+        },
+        "heading": { "type": "string", "minLength": 2, "maxLength": 90 },
+        "goal": {
+          "description": "The one concrete takeaway this section delivers. Shown in the outline editor; guides the writer.",
+          "type": "string",
+          "maxLength": 200
+        },
+        "keyPoints": {
+          "description": "Outline bullets the writer must cover. Editable by the user before writing.",
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string", "maxLength": 160 }
+        },
+        "status": {
+          "description": "outlined = not written yet; written = blocks filled; error = last write failed.",
+          "enum": ["outlined", "written", "error"]
+        },
+        "blocks": {
+          "description": "Empty until the section is written.",
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/block" }
+        }
+      }
+    },
+
+    "block": {
+      "description": "One content block. Every block has the same three fields so the AI output can use strict structured outputs. Unused fields are an empty string or an empty array.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text", "items"],
+      "properties": {
+        "type": {
+          "enum": ["paragraph", "subheading", "bullets", "steps", "checklist", "tip", "warning", "example", "template"],
+          "description": "paragraph: text. subheading: text. bullets / steps / checklist: optional intro in text, entries in items. tip / warning / example: highlighted box, text. template: fill-in-the-blank resource; text = its title, items = its lines."
+        },
+        "text": { "type": "string", "maxLength": 1500 },
+        "items": {
+          "type": "array",
+          "maxItems": 15,
+          "items": { "type": "string", "maxLength": 300 }
+        }
+      }
+    },
+
+    "cta": {
+      "description": "Always present. The AI drafts heading/text/buttonLabel; the user supplies the url.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heading", "text", "buttonLabel", "url"],
+      "properties": {
+        "heading": { "type": "string", "maxLength": 90 },
+        "text": { "type": "string", "maxLength": 400 },
+        "buttonLabel": { "type": "string", "maxLength": 40 },
+        "url": {
+          "description": "Only http(s) links are allowed, so no javascript: or data: links can end up in the PDF.",
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^(https?://[^\\s<>\"']+)?$"
+        }
+      }
+    },
+
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["templateId", "colors", "fonts", "logoDataUrl", "authorName"],
+      "properties": {
+        "templateId": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{2,30}$"
+        },
+        "colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary", "accent", "text", "background"],
+          "properties": {
+            "primary": { "$ref": "#/$defs/hexColor" },
+            "accent": { "$ref": "#/$defs/hexColor" },
+            "text": { "$ref": "#/$defs/hexColor" },
+            "background": { "$ref": "#/$defs/hexColor" }
+          }
+        },
+        "fonts": {
+          "description": "Must be one of the fonts the frontend offers (loaded from Google Fonts).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["heading", "body"],
+          "properties": {
+            "heading": { "type": "string", "maxLength": 40 },
+            "body": { "type": "string", "maxLength": 40 }
+          }
+        },
+        "logoDataUrl": {
+          "description": "Logo uploaded by the user, kept in the browser as a data URL (never sent to n8n). Empty string = no logo. SVG is excluded because SVG files can carry scripts.",
+          "type": "string",
+          "maxLength": 700000,
+          "pattern": "^(data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)?$"
+        },
+        "authorName": { "type": "string", "maxLength": 80 }
+      }
+    },
+
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    }
+  }
+}

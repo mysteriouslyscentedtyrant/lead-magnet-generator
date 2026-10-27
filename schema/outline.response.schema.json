@@ -1,0 +1,52 @@
+{
+  "name": "lead_magnet_outline",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["status", "reason", "title", "subtitle", "sections", "cta"],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["ok", "rejected"],
+        "description": "rejected = the topic is not acceptable (see the prompt rules). When rejected, the other fields are empty."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Short, polite explanation shown to the user when status is rejected. Empty string when ok."
+      },
+      "title": { "type": "string" },
+      "subtitle": { "type": "string" },
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "heading", "goal", "keyPoints"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["intro", "chapter", "conclusion", "problem", "step", "mistakes", "next_step", "group"]
+            },
+            "heading": { "type": "string" },
+            "goal": { "type": "string" },
+            "keyPoints": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "cta": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "text", "buttonLabel"],
+        "properties": {
+          "heading": { "type": "string" },
+          "text": { "type": "string" },
+          "buttonLabel": { "type": "string" }
+        }
+      }
+    }
+  }
+}
