@@ -78,6 +78,25 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 - Outline prompts can return `status: "rejected"` for harmful or non-topics; the frontend shows `reason`.
 - No URLs in AI content; the only link in the PDF is the user's CTA URL, which must be `http(s)://`.
 
+## Frontend (`/frontend`)
+
+| File | What it is |
+|---|---|
+| `widget.html` | **The snippet to paste** into a systeme.io Raw HTML element. Loads the pinned release from jsDelivr with integrity hashes. |
+| `app.js` | The whole tool: steps, outline editor, parallel section writing (3 at a time), autosave in the browser, live document preview, plain content preview. |
+| `app.css` | Styles, all scoped under `.lmg` with a zero-weight `:where()` reset so the page's own CSS can't break the tool. |
+| `probe.html` / `probe.js` | One-off page check (scripts, iframe, jsDelivr, fonts, CORS). Not needed in production. |
+
+Options on `<div id="lead-magnet-generator">`: `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3).
+
+Security: every piece of user or AI text is inserted with `textContent`, never as HTML. The only `innerHTML` is for fixed icon SVGs.
+
+**Releasing a new frontend version**
+1. Change `frontend/app.js` / `app.css`, bump `VERSION` in `app.js`.
+2. Regenerate `widget.html` with the new tag and new integrity hashes (`openssl dgst -sha384 -binary file | openssl base64 -A`).
+3. Commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. Paste the new `widget.html` into systeme.io and republish. Old pages keep working on their pinned version until then.
+
 ## n8n workflows (`/n8n`)
 
 ### `outline-workflow.json` — POST `/webhook/lead-magnet/outline`
@@ -133,7 +152,7 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 1** — repo skeleton, document schema, AI response schemas, v1 prompts
 - [x] **Phase 2** — n8n outline workflow (live-tested 2026-10-27: all 3 formats + invalid input, ~4–5 s per outline)
 - [x] **Phase 3** — n8n section workflow (end-to-end tested 2026-10-27: ebook 6 sections in 15 s, French guide 8 sections in 17 s, checklist 4 groups in 8 s, 3 sections in parallel, 0 failures)
-- [ ] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress)
+- [x] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress) — `v0.1.0`; step 5 shows a plain preview until Phase 5
 - [ ] **Phase 5** — 3 design templates, live preview, customization
 - [ ] **Phase 6** — PDF export (print CSS)
 - [ ] **Phase 7** — hardening: Turnstile, rate limit, origin check, error states, mobile pass
