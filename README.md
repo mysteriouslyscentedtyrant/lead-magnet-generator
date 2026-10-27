@@ -125,11 +125,14 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - Outline prompts: follow the target language's capitalization (French buttons came out in English title case). Already in `section.v1.md`; add in `outline.*.v3.md`.
 - Outline **Check outline** node: strip leading numbers only when followed by a space (so "3.5 Ways…" stays intact), as already done in **Check section**.
 
+- Section prompt (next version): word counts drift (intro/conclusion/next_step run 40–60% over target, some chapters 30% under); ebook intro skips the "what's inside" list and calls itself "this guide"; some checklist items run 13–15 words (target under 12).
+- Frontend: write sections 3 at a time in parallel (measured: whole ebook in ~15 s instead of ~30 s one by one).
+
 ## Roadmap
 
 - [x] **Phase 1** — repo skeleton, document schema, AI response schemas, v1 prompts
 - [x] **Phase 2** — n8n outline workflow (live-tested 2026-10-27: all 3 formats + invalid input, ~4–5 s per outline)
-- [x] **Phase 3** — n8n section workflow (import + live test pending)
+- [x] **Phase 3** — n8n section workflow (end-to-end tested 2026-10-27: ebook 6 sections in 15 s, French guide 8 sections in 17 s, checklist 4 groups in 8 s, 3 sections in parallel, 0 failures)
 - [ ] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress)
 - [ ] **Phase 5** — 3 design templates, live preview, customization
 - [ ] **Phase 6** — PDF export (print CSS)
