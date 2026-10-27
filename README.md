@@ -34,6 +34,8 @@ The OpenAI API key exists **only** inside n8n credentials. The frontend never se
 | 2026-10-27 | One AI call per section, not one call for the whole document. | Avoids webhook timeouts, gives real progress, allows regenerating one section. |
 | 2026-10-27 | AI content is plain-text blocks, never HTML/Markdown. | Templates escape everything, so neither users nor the AI can inject scripts or links. |
 | 2026-10-27 | AI model chosen in n8n, not in prompts. | Swap models without touching prompt files. Start with a low-cost model and upgrade if quality needs it. |
+| 2026-10-27 | Repo is public. | n8n reads prompts with no token; jsDelivr can serve the frontend for free. No secrets live in the repo. |
+| 2026-10-27 | OpenAI called with the HTTP Request node (OpenAI credential), not the OpenAI node. | Full control of strict JSON-schema output, independent of n8n node versions. Starting model: `gpt-4.1-mini`. |
 
 ## The document format (`/schema`)
 
@@ -74,10 +76,33 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 - Outline prompts can return `status: "rejected"` for harmful or non-topics; the frontend shows `reason`.
 - No URLs in AI content; the only link in the PDF is the user's CTA URL, which must be `http(s)://`.
 
+## n8n workflows (`/n8n`)
+
+### `outline-workflow.json` — POST `/webhook/lead-magnet/outline`
+
+Request body (JSON):
+
+| Field | Required | Allowed values |
+|---|---|---|
+| `format` | yes | `ebook`, `guide`, `checklist` |
+| `topic` | yes | 3–200 characters |
+| `audience` | yes | 3–400 characters |
+| `tone` | no (default `friendly`) | `friendly`, `professional`, `bold`, `inspiring`, `conversational` |
+| `length` | no (default `standard`) | `short`, `standard`, `detailed` |
+| `language` | no (default `English`) | a language name, e.g. `French` |
+
+Responses:
+- `200 {"ok": true, "document": {...}, "generator": {...}}`: `document` follows `document.schema.json` except `branding`, which the frontend adds. Every section has `status: "outlined"` and empty `blocks`.
+- `200 {"ok": false, "code": "rejected", "message": "..."}`: topic refused; show `message` to the user.
+- `400 {"ok": false, "code": "invalid_input", "message": "..."}`: show `message` to the user.
+- `502 {"ok": false, "code": "generation_failed", "message": "..."}`: ask the user to retry. Details are in n8n **Executions** only.
+
+Settings (model, prompt version, GitHub location) are at the top of the **Validate input** Code node.
+
 ## Roadmap
 
 - [x] **Phase 1** — repo skeleton, document schema, AI response schemas, v1 prompts
-- [ ] **Phase 2** — n8n outline workflow
+- [x] **Phase 2** — n8n outline workflow (import + live test pending)
 - [ ] **Phase 3** — n8n section workflow
 - [ ] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress)
 - [ ] **Phase 5** — 3 design templates, live preview, customization
