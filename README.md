@@ -159,3 +159,4 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 5** — 3 design templates, live preview, customization — `v0.2.0`
 - [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
 - [ ] **Phase 7** — hardening: Turnstile, rate limit, origin check, error states, mobile pass
+- [ ] **Last step** — real one-click PDF download (postponed 2026-10-27). Recommended: Gotenberg container next to n8n, print window kept as fallback. Alternatives: in-browser PDF library or a paid PDF API.
