@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.2.0';
+  var VERSION = '0.2.1';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -303,6 +303,8 @@
     startWriting(null);
   }
 
+  // Sections are written in parallel (fast) but revealed one at a time, in reading order,
+  // so the user sees a calm "one by one" progress.
   function startWriting(ids) {
     if (run) return;
     var doc = state.doc;
@@ -311,7 +313,8 @@
     });
     if (!targets.length) { save(); render(); return; }
     targets.forEach(function (s) { s.status = 'queued'; s.error = null; });
-    run = { controller: new AbortController(), queue: targets.map(function (s) { return s.id; }) };
+    var order = targets.map(function (s) { return s.id; });
+    run = { controller: new AbortController(), queue: order.slice(), order: order, results: {}, revealed: {}, done: false, timer: null };
     state.busy = 'writing';
     save(); render();
     var payload = outlinePayload();
@@ -319,14 +322,13 @@
     function worker() {
       if (current !== run || !current.queue.length) return Promise.resolve();
       var id = current.queue.shift();
-      var sec = doc.sections.filter(function (s) { return s.id === id; })[0];
-      if (!sec) return worker();
-      sec.status = 'writing'; render();
+      var sec = findSection(id);
+      if (!sec) { current.revealed[id] = true; return worker(); }
+      sec.status = 'writing';
       return api('section', { document: payload, sectionId: id }, current.controller.signal).then(function (r) {
-        if (r.code === 'aborted') { if (sec.status === 'writing') sec.status = 'outlined'; return; }
-        if (r.ok) { sec.blocks = r.blocks; sec.status = 'written'; sec.dirty = false; sec.error = null; }
-        else { sec.status = 'error'; sec.error = errorText(r, 'write this section'); }
-        save(); render();
+        if (current !== run || r.code === 'aborted') return;
+        current.results[id] = r;
+        reveal(current);
         return worker();
       });
     }
@@ -334,12 +336,41 @@
     for (var i = 0; i < Math.min(config.concurrency, targets.length); i++) workers.push(worker());
     Promise.all(workers).then(function () {
       if (current !== run) return;
-      run = null; state.busy = null; save(); render();
+      current.done = true;
+      reveal(current);
     });
+  }
+  function findSection(id) { return state.doc.sections.filter(function (s) { return s.id === id; })[0]; }
+  function nextUnrevealed(cur) { return cur.order.filter(function (id) { return !cur.revealed[id]; })[0]; }
+  function applyResult(sec, r) {
+    if (r.ok) { sec.blocks = r.blocks; sec.status = 'written'; sec.dirty = false; sec.error = null; }
+    else { sec.status = 'error'; sec.error = errorText(r, 'write this section'); }
+  }
+  function reveal(cur) {
+    if (cur !== run || cur.timer) return;
+    var id = nextUnrevealed(cur);
+    if (!id) {
+      if (cur.done) { run = null; state.busy = null; save(); render(); }
+      return;
+    }
+    var r = cur.results[id];
+    if (!r) return;
+    applyResult(findSection(id), r);
+    cur.revealed[id] = true;
+    save(); render();
+    cur.timer = setTimeout(function () { cur.timer = null; reveal(cur); }, 420);
+  }
+  // What the user sees: only the next section in reading order shows as "writing".
+  function shownStatus(sec) {
+    if (sec.dirty && sec.status === 'written') return 'outlined';
+    if (run && (sec.status === 'writing' || sec.status === 'queued')) return sec.id === nextUnrevealed(run) ? 'writing' : 'queued';
+    return sec.status;
   }
   function stopWriting() {
     if (!run) return;
-    run.controller.abort();
+    var cur = run;
+    cur.controller.abort(); clearTimeout(cur.timer);
+    cur.order.forEach(function (id) { var s = findSection(id); if (s && cur.results[id] && !cur.revealed[id]) applyResult(s, cur.results[id]); });
     state.doc.sections.forEach(function (s) { if (s.status === 'queued' || s.status === 'writing') s.status = 'outlined'; });
     run = null; state.busy = null; save(); render();
   }
@@ -752,11 +783,11 @@
 
     var jobs = h('ul', { class: 'lmg-jobs' });
     d.sections.forEach(function (s) {
-      var st = s.dirty && s.status === 'written' ? 'outlined' : s.status;
+      var st = shownStatus(s);
       var icon = st === 'written' ? 'done' : st === 'error' ? 'error' : 'wait';
       var status = st === 'written' ? fmtNum(words(s)) + ' words'
         : st === 'writing' ? 'Writing\u2026'
-        : st === 'queued' ? 'Waiting'
+        : st === 'queued' ? 'Up next'
         : st === 'error' ? s.error
         : 'Not written yet';
       var action = null;
@@ -772,7 +803,9 @@
       ]));
     });
 
-    var label = busy ? 'Writing your ' + FORMATS[d.format].name.toLowerCase() + '\u2026'
+    var cur = busy && run ? findSection(nextUnrevealed(run) || '') : null;
+    var curLabel = cur ? sectionLabel(cur) : '';
+    var label = busy ? (cur ? 'Writing ' + (/^(Chapter|Step|Group) /.test(curLabel) ? curLabel.charAt(0).toLowerCase() + curLabel.slice(1) : 'the ' + curLabel.toLowerCase()) + '\u2026' : 'Finishing up\u2026')
       : allWritten() ? 'Your ' + FORMATS[d.format].name.toLowerCase() + ' is written'
       : failed.length ? plural(failed.length, 'section', 'sections') + ' could not be written'
       : 'Ready to write';
@@ -961,7 +994,15 @@
         ])
         : h('div', { class: 'lmg-logo-row' }, [button('Upload logo', { kind: 'ghost', small: true, onClick: function () { file.click(); } }),
           h('span', { class: 'lmg-help', text: 'PNG, JPG or WebP. It stays in your browser.' })]);
-      return [file, row, logoError ? h('p', { class: 'lmg-field-error', role: 'alert', text: logoError }) : null,
+      var badge = b.logoDataUrl ? h('div', { class: 'lmg-field' }, [
+        h('span', { class: 'lmg-label', text: 'Logo background' }),
+        radioGroup('Logo background', [['clear', 'Transparent'], ['badge', 'White badge']], b.logoBadge ? 'badge' : 'clear', function (v) {
+          b.logoBadge = v === 'badge'; save(); schedulePreview(); redrawBrand();
+          var btn = root.querySelector('[aria-label="Logo background"] [data-value="' + v + '"]'); if (btn) btn.focus();
+        }),
+        h('p', { class: 'lmg-help', text: 'Use the white badge if your logo is hard to see on a colored cover.' })
+      ]) : null;
+      return [file, row, logoError ? h('p', { class: 'lmg-field-error', role: 'alert', text: logoError }) : null, badge,
         field({ key: 'brand', label: 'Brand or author name', optional: true, limit: 80, placeholder: 'e.g. Jane Doe Coaching',
           get: function () { return b.authorName; }, set: function (v) { b.authorName = v.slice(0, 80); }, onChange: schedulePreview })];
     }
@@ -1003,6 +1044,7 @@
     previewFrame.addEventListener('load', function () { updatePreview(); }, { once: true });
     previewFrame.srcdoc = EMPTY_DOC;
 
+    var dlBtn2 = button('Download PDF', { onClick: function () { downloadPdf(dlBtn2); } });
     var copyBtn = button('Copy text', { kind: 'ghost', onClick: function () {
       var text = docToText(d);
       var done = function () { copyBtn.lastChild.textContent = 'Copied'; setTimeout(function () { copyBtn.lastChild.textContent = 'Copy text'; }, 2000); };
@@ -1019,6 +1061,7 @@
         ])
       ]),
       h('div', { class: 'lmg-actions' }, [
+        dlBtn2,
         copyBtn,
         button('Back to writing', { kind: 'ghost', onClick: function () { goTo(4); } }),
         h('span', { class: 'lmg-actions-spacer' }),
@@ -1123,7 +1166,7 @@
     if (d) {
       var secs = h('ul', { class: 'lmg-live-sections' });
       d.sections.forEach(function (s) {
-        var st = s.dirty && s.status === 'written' ? 'outlined' : s.status;
+        var st = shownStatus(s);
         secs.appendChild(h('li', { class: 'lmg-live-sec is-' + st }, [
           h('span', { class: 'lmg-live-sec-mark', 'aria-hidden': 'true' }),
           h('span', { class: 'lmg-live-sec-name', text: s.heading || sectionLabel(s) })
@@ -1198,6 +1241,7 @@
       templateId: tpl,
       colors: { primary: HEX.test(c.primary) ? c.primary : d.colors.primary, accent: HEX.test(c.accent) ? c.accent : d.colors.accent, text: '#2B2D3A', background: '#FFFFFF' },
       fonts: { heading: pair.heading, body: pair.body },
+      logoBadge: b.logoBadge === true,
       logoDataUrl: typeof b.logoDataUrl === 'string' && LOGO_RE.test(b.logoDataUrl) && b.logoDataUrl.length <= 700000 ? b.logoDataUrl : '',
       authorName: typeof b.authorName === 'string' ? b.authorName.slice(0, 80) : '',
       pageSize: PAGE_SIZES[b.pageSize] ? b.pageSize : d.pageSize
@@ -1336,7 +1380,8 @@
     '.lmt-t-bold .lmt-cover-title { color: var(--onp); font-size: 40pt; }',
     '.lmt-t-bold .lmt-cover-sub { color: color-mix(in srgb, var(--onp) 82%, transparent); }',
     '.lmt-t-bold .lmt-cover-brand { color: var(--onp); }',
-    '.lmt-t-bold .lmt-cover-logo-wrap { align-self: flex-start; background: #fff; padding: 3mm 4mm; border-radius: 2mm; }',
+    '.lmt-logo-badge { align-self: flex-start; flex: none; background: #fff; padding: 3mm 4mm; border-radius: 2mm; box-shadow: 0 0 0 .5pt rgba(24,28,57,.08); }',
+    '.lmt-t-editorial .lmt-logo-badge { align-self: center; }',
     '.lmt-t-bold .lmt-cover-rule { display: none; }',
     '.lmt-t-bold .lmt-head { background: var(--p); color: var(--onp); border-radius: 3mm; padding: 8mm 9mm; display: flex; align-items: flex-end; justify-content: space-between; gap: 6mm; }',
     '.lmt-t-bold .lmt-head .lmt-h2 { color: var(--onp); }',
@@ -1347,7 +1392,6 @@
     '.lmt-t-bold .lmt-f-guide .lmt-head, .lmt-t-bold.lmt-f-guide .lmt-head { padding: 6mm 8mm; }',
     '.lmt-t-bold.lmt-f-checklist .lmt-ck-head { background: var(--p); border: 0; padding: 8mm; border-radius: 3mm; }',
     '.lmt-t-bold.lmt-f-checklist .lmt-ck-title { color: var(--onp); } .lmt-t-bold.lmt-f-checklist .lmt-ck-sub { color: color-mix(in srgb, var(--onp) 80%, transparent); }',
-    '.lmt-t-bold.lmt-f-checklist .lmt-ck-logo-wrap { background: #fff; padding: 2mm 3mm; border-radius: 2mm; }',
     '.lmt-t-bold.lmt-f-checklist .lmt-cta-inner { background: var(--a); color: var(--ona); } .lmt-t-bold.lmt-f-checklist .lmt-cta-inner h2 { color: var(--ona); } .lmt-t-bold.lmt-f-checklist .lmt-cta-text { color: color-mix(in srgb, var(--ona) 86%, transparent); } .lmt-t-bold.lmt-f-checklist .lmt-cta-btn { background: var(--p); color: var(--onp) !important; }',
 
     /* ---------------- template: Editorial ---------------- */
@@ -1502,7 +1546,7 @@
     function cover() {
       var logoEl = logo ? x('img', { class: 'lmt-cover-logo', src: logo, alt: '' }) : null;
       return x('section', { class: 'lmt-sheet lmt-sheet--cover' }, x('div', { class: 'lmt-cover' }, [
-        logoEl ? (tpl === 'bold' ? x('div', { class: 'lmt-cover-logo-wrap' }, logoEl) : logoEl) : null,
+        logoEl ? (b.logoBadge ? x('div', { class: 'lmt-logo-badge' }, logoEl) : logoEl) : null,
         x('div', { class: 'lmt-cover-main' }, [
           x('div', { class: 'lmt-cover-rule', 'aria-hidden': 'true' }),
           x('h1', { class: 'lmt-cover-title', text: d.title }),
@@ -1523,7 +1567,7 @@
       root.appendChild(x('section', { class: 'lmt-sheet lmt-sheet--single ' + density }, [
         x('header', { class: 'lmt-ck-head' }, [
           x('div', null, [x('h1', { class: 'lmt-ck-title', text: d.title }), d.subtitle ? x('p', { class: 'lmt-ck-sub', text: d.subtitle }) : null]),
-          logoEl ? (tpl === 'bold' ? x('div', { class: 'lmt-ck-logo-wrap' }, logoEl) : logoEl) : null
+          logoEl ? (b.logoBadge ? x('div', { class: 'lmt-logo-badge' }, logoEl) : logoEl) : null
         ]),
         x('div', { class: 'lmt-ck-groups' }, d.sections.map(function (s) {
           var items = [];

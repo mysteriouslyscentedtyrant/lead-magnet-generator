@@ -171,6 +171,10 @@
           "pattern": "^(data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)?$"
         },
         "authorName": { "type": "string", "maxLength": 80 },
+        "logoBadge": {
+          "description": "Optional. true = show the logo on a small white badge (for dark logos on colored covers). Default false: the logo keeps its transparent background.",
+          "type": "boolean"
+        },
         "pageSize": {
           "description": "PDF page size. Optional; defaults to Letter for US/Canada browsers and A4 elsewhere.",
           "enum": ["A4", "Letter"]
