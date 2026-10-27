@@ -810,6 +810,7 @@
     renderPrint(doc, state.doc, safeBranding(state.doc.branding), 'screen');
     fitPreview();
     win.scrollTo(0, y);
+    whenReady(doc).then(function () { fitSheets(doc, state.doc.format); });
   }
   function fitPreview() {
     if (!previewFrame || !previewFrame.contentDocument) return;
@@ -1315,6 +1316,10 @@
     '.lmt-ck--roomy .lmt-list--checklist li::before, .lmt-ck--comfy .lmt-list--checklist li::before { width: 5mm; height: 5mm; }',
     '.lmt-ck--roomy .lmt-list--checklist li, .lmt-ck--comfy .lmt-list--checklist li { padding-inline-start: 9.5mm; }',
     /* guide steps */
+    /* fit pass: slightly tighter setting for sections that would leave a near-empty page */
+    '.lmt-fit { font-size: 10pt; line-height: 1.52; } .lmt-fit .lmt-h3 { margin: 4.5mm 0 1.5mm; } .lmt-fit .lmt-box, .lmt-fit .lmt-template { margin: 3mm 0 3.5mm; padding: 3mm 4mm; } .lmt-fit .lmt-list { gap: 1.4mm; } .lmt-fit .lmt-head { margin-bottom: 5mm; } .lmt-fit p { margin-bottom: 6pt; }',
+    '.lmt-fit3 { font-size: 9.2pt; line-height: 1.42; } .lmt-fit3 .lmt-h2 { font-size: 20pt; } .lmt-fit3 .lmt-head { margin-bottom: 4mm; } .lmt-fit3 p { margin-bottom: 4.5pt; }',
+    '.lmt-fit2 { font-size: 9.5pt; line-height: 1.46; } .lmt-fit2 .lmt-h3 { margin: 3.5mm 0 1.2mm; } .lmt-fit2 .lmt-box, .lmt-fit2 .lmt-template { margin: 2.5mm 0 3mm; padding: 2.6mm 3.6mm; } .lmt-fit2 .lmt-list { gap: 1.1mm; }',
     '.lmt-stepnum { display: inline-grid; place-items: center; width: 9mm; height: 9mm; border-radius: 50%; background: var(--a); color: #fff; font-family: var(--hf), sans-serif; font-weight: 700; font-size: 12pt; margin-bottom: 3mm; }',
 
     /* ---------------- template: Clean ---------------- */
@@ -1556,6 +1561,38 @@
     return root;
   }
 
+  // Measures each flowing sheet against the printable page height. When a sheet would spill a
+  // small remainder onto an extra page, its setting is tightened one or two notches.
+  function fitSheets(doc, format) {
+    if (format === 'checklist') return;
+    var probe = doc.createElement('div');
+    probe.style.cssText = 'position:absolute;left:-9999px;top:0;width:1px;height:calc(var(--ph) - 38mm);';
+    doc.body.appendChild(probe);
+    var pageH = probe.getBoundingClientRect().height;
+    probe.remove();
+    if (!pageH) return;
+    function used(sheet) {
+      var first = sheet.firstElementChild, last = sheet.lastElementChild;
+      if (!first) return 0;
+      return last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
+    }
+    Array.prototype.forEach.call(doc.querySelectorAll('.lmt-sheet:not(.lmt-sheet--cover):not(.lmt-sheet--cta)'), function (sheet) {
+      sheet.classList.remove('lmt-fit', 'lmt-fit2', 'lmt-fit3');
+      // At risk = ends just after a page boundary (small spill) or just before one: in print,
+      // boxes that can't be split are pushed down, so "almost full" often spills too.
+      function atRisk(p) { var r = p - Math.floor(p); return (p >= 1 && r < 0.34) || (p >= 0.8 && r > 0.86); }
+      function settled(p) { var r = p - Math.floor(p); return !(p >= 1 && r < 0.34) && r <= 0.94; }
+      if (!atRisk(used(sheet) / pageH)) return;
+      var levels = ['lmt-fit', 'lmt-fit2', 'lmt-fit3'];
+      for (var i = 0; i < levels.length; i++) {
+        sheet.classList.add(levels[i]);
+        if (settled(used(sheet) / pageH)) return;
+      }
+      // Could not end cleanly even at the tightest setting: keep the normal size instead.
+      sheet.classList.remove('lmt-fit', 'lmt-fit2', 'lmt-fit3');
+    });
+  }
+
   function whenReady(doc) {
     var imgs = Array.prototype.slice.call(doc.images || []).map(function (img) {
       return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
@@ -1585,6 +1622,7 @@
         var doc = frame.contentDocument;
         renderPrint(doc, d, b, 'print');
         whenReady(doc).then(function () {
+          fitSheets(doc, d.format);
           if (opts.dryRun) { resolve(frame); return; }
           var oldTitle = document.title;
           document.title = d.title;
