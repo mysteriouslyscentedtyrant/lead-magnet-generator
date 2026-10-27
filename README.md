@@ -103,9 +103,9 @@ Security: every piece of user or AI text is inserted with `textContent`, never a
 
 ## n8n workflows (`/n8n`)
 
-### Live: `lead-magnet-api-workflow.json` (v3, protected)
+### Live: `lead-magnet-api-workflow.json` (v3.1, protected)
 
-One workflow, one webhook path `lead-magnet/:action`, so the page still calls `/webhook/lead-magnet/outline` and `/webhook/lead-magnet/section`, plus `/webhook/lead-magnet/pass` (a fresh writing pass, no AI call). It replaces the two older workflows below (kept for reference). Request/response formats are unchanged, with these additions: requests may carry `turnstile` (human-check token) and `pass`; successful outline answers include `pass`.
+One workflow with three fixed webhook addresses (`/webhook/lead-magnet/outline`, `/section`, `/pass`) that feed the same protected flow; `/pass` returns a fresh writing pass with no AI call. (Not a single `lead-magnet/:action` webhook: n8n puts the webhook ID into addresses with variable parts, so the short address would not match.) It replaces the two older workflows below (kept for reference). Request/response formats are unchanged, with these additions: requests may carry `turnstile` (human-check token) and `pass`; successful outline answers include `pass`.
 
 **Protection (all settings at the top of the Guard node)**
 - Allowed pages: `https://sehnounberoual.systeme.io`, `https://systeme.io`, `https://www.systeme.io` (CORS + origin check; requests without a matching Origin are refused).
