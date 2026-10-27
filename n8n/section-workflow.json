@@ -1,0 +1,406 @@
+{
+  "name": "Lead Magnet - Section (v1)",
+  "nodes": [
+    {
+      "id": "d248fdc5-92a0-43f4-a19e-468583c580b1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "97bd2928-d835-4c82-a488-d7f38950bf20",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-magnet/section",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      }
+    },
+    {
+      "id": "fea60224-32a4-4403-a25f-6f50d48e01bf",
+      "name": "Validate input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ===================== SETTINGS (safe to change) =====================\nconst PROMPT_VERSION = 'v1';          // which prompt file to use: section.v1.md\nconst MODEL = 'gpt-4.1-mini';         // OpenAI model used to write sections\nconst REPO_RAW = 'https://raw.githubusercontent.com/mysteriouslyscentedtyrant/lead-magnet-generator/main';\n// =====================================================================\n\n// The page sends { document, sectionId }. \"document\" is the approved outline\n// (written blocks and branding, if present, are ignored). The user may have\n// edited the outline, so everything is checked again here.\n\nconst FORMATS = ['ebook', 'guide', 'checklist'];\nconst TONES = ['friendly', 'professional', 'bold', 'inspiring', 'conversational'];\nconst LENGTHS = ['short', 'standard', 'detailed'];\nconst RULES = {\n  ebook:     { first: ['intro'],   middle: 'chapter', last: ['conclusion'],            min: 4, max: 7 },\n  guide:     { first: ['problem'], middle: 'step',    last: ['mistakes', 'next_step'], min: 3, max: 9 },\n  checklist: { first: [],          middle: 'group',   last: [],                        min: 3, max: 5 },\n};\n\nconst body = $input.first().json.body || {};\nconst doc = body.document && typeof body.document === 'object' ? body.document : {};\nconst meta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {};\nconst errors = [];\n\n// Same cleaning as the outline workflow: no control/invisible characters,\n// no angle brackets (can't break the prompt tags), no {{ }} (no placeholder injection).\nfunction clean(value) {\n  if (typeof value !== 'string') return '';\n  return value\n    .normalize('NFKC')\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(/[<>]/g, ' ')\n    .replace(/\\{\\{|\\}\\}/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction text(value, label, min, max) {\n  const v = clean(value);\n  if (v.length < min) errors.push(`${label} must be at least ${min} characters.`);\n  else if (v.length > max) errors.push(`${label} must be ${max} characters or less.`);\n  return v;\n}\nfunction choice(value, label, allowed, fallback) {\n  if ((value === undefined || value === null || value === '') && fallback !== undefined) return fallback;\n  const v = String(value == null ? '' : value).trim().toLowerCase();\n  if (!allowed.includes(v)) { errors.push(`${label} must be one of: ${allowed.join(', ')}.`); return ''; }\n  return v;\n}\n\nconst format = choice(doc.format, 'Format', FORMATS);\nconst topic = text(meta.topic, 'Topic', 3, 200);\nconst audience = text(meta.audience, 'Audience', 3, 400);\nconst offer = text(meta.offer || '', 'Offer', 0, 300);\nconst tone = choice(meta.tone, 'Tone', TONES, 'friendly');\nconst length = choice(meta.length, 'Length', LENGTHS, 'standard');\nlet language = clean(meta.language || '') || 'English';\nif (!/^[\\p{L} ()-]{2,30}$/u.test(language)) errors.push('Language must be a language name such as English or French.');\n\nconst title = text(doc.title, 'Title', 3, 90);\nconst subtitle = text(doc.subtitle || '', 'Subtitle', 0, 160);\n\nconst rawSections = Array.isArray(doc.sections) ? doc.sections : [];\nif (rawSections.length < 1 || rawSections.length > 12) errors.push('The outline must have between 1 and 12 sections.');\n\nconst sections = rawSections.slice(0, 12).map((s, i) => {\n  s = s && typeof s === 'object' ? s : {};\n  const n = i + 1;\n  const id = typeof s.id === 'string' && /^s[0-9]{1,2}$/.test(s.id) ? s.id : '';\n  if (!id) errors.push(`Section ${n} has an invalid id.`);\n  const keyPoints = Array.isArray(s.keyPoints) ? s.keyPoints : [];\n  if (keyPoints.length > 8) errors.push(`Section ${n} has more than 8 key points.`);\n  return {\n    id,\n    type: String(s.type || ''),\n    heading: text(s.heading, `Section ${n} heading`, 2, 90),\n    goal: text(s.goal || '', `Section ${n} goal`, 0, 200),\n    keyPoints: keyPoints.slice(0, 8).map((k, j) => text(k, `Section ${n} key point ${j + 1}`, 1, 160)),\n  };\n});\n\nconst ids = sections.map(s => s.id);\nif (new Set(ids).size !== ids.length) errors.push('Section ids must be unique.');\n\nif (format) {\n  const rule = RULES[format];\n  const types = sections.map(s => s.type);\n  const middle = types.length - rule.first.length - rule.last.length;\n  const expected = [...rule.first, ...Array(Math.max(middle, 0)).fill(rule.middle), ...rule.last];\n  if (middle < rule.min || middle > rule.max || types.join() !== expected.join()) {\n    errors.push(`A ${format} needs ${rule.first.concat([`${rule.min}-${rule.max} x ${rule.middle}`], rule.last).join(', ')} sections in that order.`);\n  }\n}\n\nconst sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';\nconst index = sections.findIndex(s => s.id === sectionId);\nif (index === -1) errors.push('sectionId does not match any section in the outline.');\n\nif (errors.length) {\n  return [{ json: { ok: false, response: { ok: false, code: 'invalid_input', message: errors.slice(0, 5).join(' ') } } }];\n}\n\nconst target = sections[index];\nconst outline = sections\n  .map((s, i) => `${i + 1}. [${s.type}] ${s.heading}${i === index ? '   [THIS SECTION]' : ''}`)\n  .join('\\n');\n\nreturn [{\n  json: {\n    ok: true,\n    format,\n    sectionId,\n    sectionType: target.type,\n    length,\n    model: MODEL,\n    promptVersion: PROMPT_VERSION,\n    promptUrl: `${REPO_RAW}/prompts/section.${PROMPT_VERSION}.md`,\n    schemaUrl: `${REPO_RAW}/schema/section.response.schema.json`,\n    vars: {\n      format, title, subtitle, audience,\n      offer: offer || 'Not provided',\n      tone, length, language,\n      outline,\n      position: `${index + 1} of ${sections.length}`,\n      section_type: target.type,\n      section_heading: target.heading,\n      section_goal: target.goal || '(no goal given)',\n      section_key_points: target.keyPoints.length ? target.keyPoints.map(k => '- ' + k).join('\\n') : '- (no key points given: cover the heading)',\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "8d6feae7-1a95-4648-aff1-5e0506fa664f",
+      "name": "Input OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c874f4b5-a98d-4c18-84c5-d495892359f2",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4cd93483-10b0-48dc-bd2f-7d25562c5e28",
+      "name": "Respond: invalid input (400)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "7daacfcb-57a3-49b1-8940-b2dd8000e15f",
+      "name": "Load prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        280
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $json.promptUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "165732cb-4ed8-4834-8dcf-365173eed2e5",
+      "name": "Load schema",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        280
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "url": "={{ $('Validate input').first().json.schemaUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "c6acbd39-3426-4505-a1bf-5fcc216f4e66",
+      "name": "Build OpenAI request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        280
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "// Builds the OpenAI request from the section prompt and response schema loaded from GitHub.\nconst settings = $('Validate input').first().json;\nconst promptText = String($('Load prompt').first().json.data || '').replace(/\\r\\n/g, '\\n');\nconst schemaText = $('Load schema').first().json.data;\n\n// Split the prompt file into its SYSTEM and USER parts.\nconst sysMarker = '===SYSTEM===';\nconst userMarker = '===USER===';\nconst sysAt = promptText.indexOf(sysMarker);\nconst userAt = promptText.indexOf(userMarker);\nif (sysAt === -1 || userAt === -1 || userAt < sysAt) {\n  throw new Error('Prompt file is missing the ===SYSTEM=== or ===USER=== marker: ' + settings.promptUrl);\n}\nconst system = promptText.slice(sysAt + sysMarker.length, userAt).trim();\nconst userTemplate = promptText.slice(userAt + userMarker.length).trim();\n\n// Fill {{placeholders}} in ONE pass, so text typed by a user is never re-read as a placeholder.\nconst vars = settings.vars;\nconst user = userTemplate.replace(/\\{\\{(\\w+)\\}\\}/g, (match, key) => {\n  if (!(key in vars)) throw new Error('Prompt uses an unknown placeholder: ' + match);\n  return vars[key];\n});\n\nlet responseSchema;\ntry {\n  responseSchema = typeof schemaText === 'string' ? JSON.parse(schemaText) : schemaText;\n} catch (e) {\n  throw new Error('Response schema is not valid JSON: ' + settings.schemaUrl);\n}\n\nreturn [{\n  json: {\n    requestBody: {\n      model: settings.model,\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: user },\n      ],\n      response_format: { type: 'json_schema', json_schema: responseSchema },\n      max_completion_tokens: 3500,\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "7f097906-5ff0-4929-9be7-4a9e1a37d89c",
+      "name": "OpenAI: write section",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        280
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "OpenAI account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "1cbd94ab-c007-4135-8ce3-aa39f7044228",
+      "name": "Check section",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        280
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "// Checks the AI answer for ONE section and cleans every block.\n// Any problem throws an error -> the workflow answers with a generic \"please try again\".\nconst settings = $('Validate input').first().json;\nconst res = $input.first().json;\n\nconst choice = res.choices && res.choices[0];\nconst message = choice && choice.message;\nif (!message) throw new Error('OpenAI returned no message: ' + JSON.stringify(res).slice(0, 500));\nif (choice.finish_reason === 'length') throw new Error('Section was cut off (max_completion_tokens too low).');\n\nif (message.refusal) {\n  return [{ json: { response: { ok: false, code: 'rejected', sectionId: settings.sectionId,\n    message: \"We can't write this section. Please edit its heading or key points and try again.\" } } }];\n}\n\nlet data;\ntry { data = JSON.parse(message.content); }\ncatch (e) { throw new Error('AI answer is not valid JSON: ' + String(message.content).slice(0, 500)); }\n\n// ---------- text helpers ----------\nconst URL_RE = /\\b(?:https?:\\/\\/|www\\.)\\S+/gi;\nconst EMAIL_RE = /\\b[\\w.+-]+@[\\w-]+\\.[\\w.-]+\\b/g;\nfunction tidy(value) {\n  return String(value == null ? '' : value)\n    .replace(/[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u2028-\\u202E\\u2060-\\u2069\\uFEFF]/g, ' ')\n    .replace(URL_RE, '')\n    .replace(EMAIL_RE, '')\n    .replace(/\\*\\*|__|`/g, '')\n    .replace(/^\\s*#{1,6}\\s+/, '')\n    .replace(/\\s+/g, ' ')\n    .replace(/\\s+([,.;:!?])/g, '$1')\n    .trim();\n}\nfunction cut(value, max) {\n  const v = tidy(value);\n  if (v.length <= max) return v;\n  const short = v.slice(0, max);\n  const space = short.lastIndexOf(' ');\n  return (space > max * 0.6 ? short.slice(0, space) : short).replace(/[\\s,;:-]+$/, '');\n}\n// List items: also drop leading bullets, numbers and checkboxes the design adds itself.\nfunction item(value) {\n  return cut(String(value == null ? '' : value).replace(/^\\s*(\\d+[.)](?=\\s)|[-*\\u2022\\u2013](?=\\s)|\\[[ xX]?\\]|\\u2610|\\u2611)\\s*/, ''), 300);\n}\n\nconst TEXT_TYPES = ['paragraph', 'subheading', 'tip', 'warning', 'example'];\nconst LIST_TYPES = ['bullets', 'steps', 'checklist'];\n\nlet blocks = (Array.isArray(data.blocks) ? data.blocks : []).map(b => {\n  b = b && typeof b === 'object' ? b : {};\n  const type = String(b.type || '');\n  const items = (Array.isArray(b.items) ? b.items : []).map(item).filter(Boolean).slice(0, 15);\n  if (TEXT_TYPES.includes(type)) {\n    const t = cut(b.text, type === 'subheading' ? 90 : 1500);\n    return t ? { type, text: t, items: [] } : null;\n  }\n  if (LIST_TYPES.includes(type)) {\n    return items.length ? { type, text: cut(b.text, 300), items } : null;\n  }\n  if (type === 'template') {\n    return items.length ? { type, text: cut(b.text, 120) || 'Template', items } : null;\n  }\n  return null;\n}).filter(Boolean).slice(0, 30);\n\n// A checklist group is exactly ONE checklist block of short items.\nif (settings.sectionType === 'group') {\n  const all = blocks.filter(b => b.type === 'checklist').flatMap(b => b.items);\n  const seen = new Set();\n  const unique = all\n    .map(i => cut(i, 120))\n    .filter(i => { const k = i.toLowerCase(); if (!i || seen.has(k)) return false; seen.add(k); return true; })\n    .slice(0, 6);\n  if (unique.length < 3) throw new Error('Checklist group has fewer than 3 items.');\n  blocks = [{ type: 'checklist', text: '', items: unique }];\n}\n\n// Never start a section with a subheading only, never end on one.\nwhile (blocks.length && blocks[blocks.length - 1].type === 'subheading') blocks.pop();\nif (!blocks.length) throw new Error('Section has no usable content blocks.');\n\nconst words = blocks.reduce((n, b) => n + [b.text, ...b.items].join(' ').split(/\\s+/).filter(Boolean).length, 0);\n\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      sectionId: settings.sectionId,\n      blocks,\n      generator: {\n        promptVersion: settings.promptVersion,\n        model: res.model || settings.model,\n        tokens: res.usage ? res.usage.total_tokens : null,\n        words,\n      },\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "ee3e4e0e-5a1a-4971-8004-f7041d478b6a",
+      "name": "Respond: section (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "a2f9eec2-7d4a-41b0-b79f-d46b1e7d5791",
+      "name": "Respond: generation failed (502)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        520
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": false, \"code\": \"generation_failed\", \"message\": \"We couldn't write this section right now. Please try again.\"}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b7efdc23-a6cb-4888-b732-aff4b50a6429",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -60
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 300,
+        "color": 4,
+        "content": "## Lead Magnet: Section (v1)\n**Setup after import**\n1. Open **OpenAI: write section** and pick your OpenAI credential.\n2. Save, then switch the workflow to **Active**.\n\nReceives `{ document, sectionId }` and writes ONE section. The page calls it once per section.\n**Settings** (model, prompt version) are at the top of **Validate input**. Prompt: `prompts/section.v1.md`.\n\n**Answers:** 200 `{ok:true, sectionId, blocks}` or `{ok:false, code:\"rejected\"}` \u00b7 400 invalid input \u00b7 502 generation failed.\n\nTODO Phase 7: restrict CORS origin, Turnstile, rate limit."
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate input": {
+      "main": [
+        [
+          {
+            "node": "Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Load prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: invalid input (400)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load prompt": {
+      "main": [
+        [
+          {
+            "node": "Load schema",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load schema": {
+      "main": [
+        [
+          {
+            "node": "Build OpenAI request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build OpenAI request": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: write section",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: write section": {
+      "main": [
+        [
+          {
+            "node": "Check section",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check section": {
+      "main": [
+        [
+          {
+            "node": "Respond: section (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

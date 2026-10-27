@@ -63,7 +63,7 @@ Section types per format:
 | `outline.guide.v2.md` (live) | outline workflow, format = guide | same |
 | `outline.checklist.v2.md` (live) | outline workflow, format = checklist | same |
 | `outline.*.v1.md` | previous version, kept for rollback | topic, audience, tone, length, language |
-| `section.v1.md` | section workflow, all formats | format, title, subtitle, audience, tone, length, language, outline, position, section_type, section_heading, section_goal, section_key_points |
+| `section.v1.md` (live) | section workflow, all formats | format, title, subtitle, audience, offer, tone, length, language, outline, position, section_type, section_heading, section_goal, section_key_points |
 
 Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (the system message) and `===USER===` (the user message with `{{placeholders}}`). n8n splits on those two markers.
 
@@ -102,11 +102,34 @@ Responses:
 
 Settings (model, prompt version, GitHub location) are at the top of the **Validate input** Code node.
 
+### `section-workflow.json` — POST `/webhook/lead-magnet/section`
+
+Writes ONE section. The page calls it once per section (progress bar, single-section regenerate).
+
+Request body (JSON):
+
+| Field | Required | Notes |
+|---|---|---|
+| `document` | yes | The approved outline as returned by the outline workflow, with any user edits. `blocks` and `branding` are ignored. Re-validated: same limits and section order rules as the outline. |
+| `sectionId` | yes | e.g. `s3`, must exist in `document.sections` |
+
+Responses:
+- `200 {"ok": true, "sectionId": "s3", "blocks": [...], "generator": {...}}`: put `blocks` into that section and set its `status` to `written`.
+- `200 {"ok": false, "code": "rejected", "sectionId": "s3", "message": "..."}`: show `message`; the user can edit the section and retry.
+- `400 invalid_input` / `502 generation_failed`: same as the outline workflow; on 502 set the section `status` to `error` and offer a retry.
+
+Output cleaning in **Check section**: links, email addresses and Markdown symbols are removed; list numbering and bullets are stripped (the design adds them); empty or unknown blocks are dropped; a checklist group becomes exactly one checklist block of 3–6 unique items.
+
+## Open follow-ups
+
+- Outline prompts: follow the target language's capitalization (French buttons came out in English title case). Already in `section.v1.md`; add in `outline.*.v3.md`.
+- Outline **Check outline** node: strip leading numbers only when followed by a space (so "3.5 Ways…" stays intact), as already done in **Check section**.
+
 ## Roadmap
 
 - [x] **Phase 1** — repo skeleton, document schema, AI response schemas, v1 prompts
 - [x] **Phase 2** — n8n outline workflow (live-tested 2026-10-27: all 3 formats + invalid input, ~4–5 s per outline)
-- [ ] **Phase 3** — n8n section workflow
+- [x] **Phase 3** — n8n section workflow (import + live test pending)
 - [ ] **Phase 4** — frontend steps 1–4 (form, outline editor, generation progress)
 - [ ] **Phase 5** — 3 design templates, live preview, customization
 - [ ] **Phase 6** — PDF export (print CSS)
