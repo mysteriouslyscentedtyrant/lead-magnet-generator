@@ -1,5 +1,5 @@
-# Debian image with Google Chrome and Puppeteer preinstalled (Node.js 24).
-FROM apify/actor-node-puppeteer-chrome:24
+# Debian image with Google Chrome and Puppeteer preinstalled (Node.js 22).
+FROM apify/actor-node-puppeteer-chrome:22
 
 COPY --chown=myuser:myuser package*.json ./
 RUN npm --quiet set progress=false \

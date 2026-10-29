@@ -2,7 +2,7 @@
   "name": "Lead Magnet API (v3.2, protected)",
   "nodes": [
     {
-      "id": "a8928f67-abfa-43c9-8af5-74cc6c58d6ae",
+      "id": "6df42c1f-cdf2-473e-92dc-330b3181d141",
       "name": "Webhook: outline",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -10,7 +10,7 @@
         -260,
         240
       ],
-      "webhookId": "436fa260-4a36-4e59-b7c1-0535d2b16f24",
+      "webhookId": "e0f3338f-46c1-434b-a68f-d974b67e2866",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/outline",
@@ -21,7 +21,7 @@
       }
     },
     {
-      "id": "948a92e8-4801-4b1b-aef9-2f96f6c22f50",
+      "id": "d7e882b7-bb1c-420c-bc43-eb658a7e1d79",
       "name": "Tag: outline",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -34,7 +34,7 @@
       }
     },
     {
-      "id": "b6d241af-9291-448f-81a4-98812aa1094f",
+      "id": "560d1096-acd6-4bb6-817f-033eb908285b",
       "name": "Webhook: section",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -42,7 +42,7 @@
         -260,
         400
       ],
-      "webhookId": "77b2d05f-0c53-44eb-9a2f-6a2daf6d41fc",
+      "webhookId": "0aea2ca8-8605-4ca2-9b9a-be7237a5154f",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/section",
@@ -53,7 +53,7 @@
       }
     },
     {
-      "id": "2917ba22-ed06-46de-9b21-9ddcff3bf0d7",
+      "id": "81885356-f000-40a3-ab60-5ca7436ab528",
       "name": "Tag: section",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -66,7 +66,7 @@
       }
     },
     {
-      "id": "b3841eae-e42f-4ff9-aae6-f49e059401df",
+      "id": "20b9b54e-106f-41f2-a149-99a7fef4bbf5",
       "name": "Webhook: pass",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -74,7 +74,7 @@
         -260,
         560
       ],
-      "webhookId": "6c6324ff-4f18-40fa-9463-1ab2f663b41e",
+      "webhookId": "90eed58c-d345-4882-be55-e604201ccf03",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/pass",
@@ -85,7 +85,7 @@
       }
     },
     {
-      "id": "7425116d-3c5d-45a3-bb57-f786bbb6993b",
+      "id": "4db64a3e-30fc-45b2-8403-2abe3a2ce8bb",
       "name": "Tag: pass",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -98,7 +98,7 @@
       }
     },
     {
-      "id": "63717b2e-66a6-466c-b5cc-7f71510f4a26",
+      "id": "f4959e34-25ad-453c-9f3e-b9838adeaccf",
       "name": "Webhook: pdf",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -106,7 +106,7 @@
         -260,
         720
       ],
-      "webhookId": "a2477633-751c-4a21-95db-c506906ca7aa",
+      "webhookId": "593dc14f-bc37-4a6a-b1bf-3566e568de4a",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/pdf",
@@ -117,7 +117,7 @@
       }
     },
     {
-      "id": "9fc5f37e-fa9e-4a10-83f3-130d1074e523",
+      "id": "5ae6673b-abc7-47a2-a932-2d5f3d72a0ea",
       "name": "Tag: pdf",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -130,7 +130,7 @@
       }
     },
     {
-      "id": "4b75b7e3-3d74-4d9c-88af-a01ad726586b",
+      "id": "ab6cfcc1-c251-4e6f-bd87-5872b9f6ee54",
       "name": "Guard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -143,7 +143,7 @@
       }
     },
     {
-      "id": "58ba77aa-9a8c-4c30-a2d9-d03e001d8e9a",
+      "id": "8fe72755-3503-4c28-bbc1-55e2b2cb0330",
       "name": "Allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -160,7 +160,7 @@
           },
           "conditions": [
             {
-              "id": "31e879cd-0bb8-48f3-95ac-4695b3cdf5a2",
+              "id": "08694bea-9b2f-44ad-8733-04673a11d496",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -176,7 +176,7 @@
       }
     },
     {
-      "id": "3502f910-5339-44be-b4fa-21ce4804c457",
+      "id": "0053b33f-c284-48d0-9c15-212d0bf3227c",
       "name": "Human check needed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -193,7 +193,7 @@
           },
           "conditions": [
             {
-              "id": "4bc04aa2-9e71-4428-9cb6-26177fbd2eb1",
+              "id": "f2fced3e-b41f-4901-ac9d-e6bad69c3fbd",
               "leftValue": "={{ $json.verify }}",
               "rightValue": true,
               "operator": {
@@ -209,7 +209,7 @@
       }
     },
     {
-      "id": "60a9b4bc-4f1c-4123-9790-14c7d2d69e43",
+      "id": "a9e2c797-42e5-40ed-9832-fc2898dd2e52",
       "name": "Verify Turnstile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -230,7 +230,7 @@
       }
     },
     {
-      "id": "91599177-472f-413b-a7f1-f289265b94b0",
+      "id": "c5178370-d95d-4c2f-b4a2-bbaa192ab1d5",
       "name": "Check Turnstile",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -243,7 +243,7 @@
       }
     },
     {
-      "id": "c88899c7-dc93-4eec-974a-2103bb8f6678",
+      "id": "892b9570-7731-4e44-a469-52ed5811c3fd",
       "name": "Human?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -260,7 +260,7 @@
           },
           "conditions": [
             {
-              "id": "16a4b211-8175-4252-b895-d09be9374d70",
+              "id": "df14f16e-fec0-492f-9a30-541692baae02",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -276,7 +276,7 @@
       }
     },
     {
-      "id": "c5c9a1ca-adf3-4912-a791-51ac0b297f4e",
+      "id": "2a256681-309b-4e08-835e-987a1fa6268f",
       "name": "Pass only?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -293,7 +293,7 @@
           },
           "conditions": [
             {
-              "id": "dfc30b37-2bd6-46ad-93ce-9b3874246282",
+              "id": "f5b132e5-37e5-4ca1-a275-d6eaef91cb6b",
               "leftValue": "={{ $('Guard').first().json.action }}",
               "rightValue": "pass",
               "operator": {
@@ -308,7 +308,7 @@
       }
     },
     {
-      "id": "044fa489-506c-46d0-a383-c3999d019f2a",
+      "id": "9afe186b-c99a-41eb-8d9f-d2c6e7f77239",
       "name": "Pass answer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -321,7 +321,7 @@
       }
     },
     {
-      "id": "997359cf-d2e6-4458-9284-681690dc7133",
+      "id": "bd5fdf45-57fc-4930-8623-88d08dcb0549",
       "name": "PDF?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -338,7 +338,7 @@
           },
           "conditions": [
             {
-              "id": "54ad7356-27b5-4661-88d5-dea63e725dd5",
+              "id": "7dbc94cc-4896-4969-b24a-0b76d731add1",
               "leftValue": "={{ $('Guard').first().json.action }}",
               "rightValue": "pdf",
               "operator": {
@@ -353,7 +353,7 @@
       }
     },
     {
-      "id": "2b280012-52a1-4326-971f-e0b07019d8d4",
+      "id": "75f63db1-5642-4c15-9642-a165e40318a3",
       "name": "Validate PDF input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -362,11 +362,11 @@
         980
       ],
       "parameters": {
-        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// Full name of the private Apify actor, with ~ instead of / (Apify Console shows it as username/lead-magnet-pdf).\nconst APIFY_ACTOR = 'REPLACE_WITH_APIFY_USERNAME~lead-magnet-pdf';\nconst MAX_HTML_BYTES = 4 * 1024 * 1024;   // the document incl. the embedded logo\nconst APIFY_MEMORY_MB = 1024;\n// ===================================================================================\n\nconst body = $('Guard').first().json.body || {};\nconst html = typeof body.html === 'string' ? body.html : '';\nfunction bad(message) {\n  return [{ json: { ok: false, statusCode: 400, response: { ok: false, code: 'invalid_input', message } } }];\n}\nif (!/^<!doctype html>/i.test(html.replace(/^\\s+/, ''))) return bad('The document is missing.');\nif (Buffer.byteLength(html, 'utf8') > MAX_HTML_BYTES) return bad('The document is too large. Try a smaller logo.');\n// Our renderer never produces these, so their presence means the request was crafted by hand.\nif (/<\\s*(script|iframe|frame|object|embed|base|form)\\b/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/<[^>]+\\son[a-z]+\\s*=/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/http-equiv\\s*=\\s*[\"']?\\s*refresh/i.test(html)) return bad('The document contains content that is not allowed.');\nif (!/<main class=\"lmt lmt-t-[a-z]+ lmt-f-(ebook|guide|checklist)\"/.test(html)) return bad('This is not a lead magnet document.');\nif (/^REPLACE_WITH/.test(APIFY_ACTOR)) throw new Error('Set APIFY_ACTOR at the top of the \"Validate PDF input\" node.');\n\nconst filename = (String(body.filename || '').normalize('NFKD').replace(/[^\\w\\- ]+/g, '').trim().replace(/\\s+/g, '-').slice(0, 80) || 'lead-magnet') + '.pdf';\nreturn [{ json: {\n  ok: true,\n  filename,\n  url: 'https://api.apify.com/v2/acts/' + encodeURIComponent(APIFY_ACTOR) + '/run-sync?timeout=120&memory=' + APIFY_MEMORY_MB,\n  apifyBody: { html },\n} }];\n"
+        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// The private Apify actor: copy the APIFY_ACTOR value shown by the \"Lead Magnet PDF: one-time Apify setup\" workflow.\nconst APIFY_ACTOR = 'REPLACE_WITH_APIFY_ACTOR';   // e.g. 'team-sio~lead-magnet-pdf' (username~actor name)\nconst MAX_HTML_BYTES = 4 * 1024 * 1024;   // the document incl. the embedded logo\nconst APIFY_MEMORY_MB = 1024;\n// ===================================================================================\n\nconst body = $('Guard').first().json.body || {};\nconst html = typeof body.html === 'string' ? body.html : '';\nfunction bad(message) {\n  return [{ json: { ok: false, statusCode: 400, response: { ok: false, code: 'invalid_input', message } } }];\n}\nif (!/^<!doctype html>/i.test(html.replace(/^\\s+/, ''))) return bad('The document is missing.');\nif (Buffer.byteLength(html, 'utf8') > MAX_HTML_BYTES) return bad('The document is too large. Try a smaller logo.');\n// Our renderer never produces these, so their presence means the request was crafted by hand.\nif (/<\\s*(script|iframe|frame|object|embed|base|form)\\b/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/<[^>]+\\son[a-z]+\\s*=/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/http-equiv\\s*=\\s*[\"']?\\s*refresh/i.test(html)) return bad('The document contains content that is not allowed.');\nif (!/<main class=\"lmt lmt-t-[a-z]+ lmt-f-(ebook|guide|checklist)\"/.test(html)) return bad('This is not a lead magnet document.');\nif (/^REPLACE_WITH/.test(APIFY_ACTOR)) throw new Error('Set APIFY_ACTOR at the top of the \"Validate PDF input\" node.');\n\nconst filename = (String(body.filename || '').normalize('NFKD').replace(/[^\\w\\- ]+/g, '').trim().replace(/\\s+/g, '-').slice(0, 80) || 'lead-magnet') + '.pdf';\nreturn [{ json: {\n  ok: true,\n  filename,\n  url: 'https://api.apify.com/v2/actors/' + encodeURIComponent(APIFY_ACTOR) + '/run-sync?timeout=120&memory=' + APIFY_MEMORY_MB,\n  apifyBody: { html },\n} }];\n"
       }
     },
     {
-      "id": "56b13cf1-8750-45db-9d36-ec840a530071",
+      "id": "9f5b8eaa-48eb-40c4-92bd-4f3e37e3e5e6",
       "name": "PDF input OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -383,7 +383,7 @@
           },
           "conditions": [
             {
-              "id": "76b21e98-5135-44d7-811a-a3f7ab3ef104",
+              "id": "06736691-2209-41b7-9288-24a51efa6bdd",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -399,7 +399,7 @@
       }
     },
     {
-      "id": "6b7624a8-abe6-43f4-a15b-6ab86bfaf9bc",
+      "id": "58cbf9e5-3ae6-4a02-857a-4f696dbe4081",
       "name": "Apify: make PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -437,7 +437,7 @@
       }
     },
     {
-      "id": "2c64f4c8-929f-45c1-9747-3621053e1eef",
+      "id": "0337841e-6443-44ea-ae12-b8cced9c068e",
       "name": "Check PDF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -451,7 +451,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "4bfeaed3-559a-4021-ad78-5480f257e6d1",
+      "id": "b575941c-2c9d-4828-860c-b2d3189863da",
       "name": "Respond: PDF",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -485,7 +485,7 @@
       }
     },
     {
-      "id": "11950f00-159e-4f18-8581-d548d6fd3448",
+      "id": "f51ca4cc-bc8d-4bf8-80c5-77cc9290cb84",
       "name": "Outline or section?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -502,7 +502,7 @@
           },
           "conditions": [
             {
-              "id": "2b728fe1-e933-4006-9aaf-7dc5684844d1",
+              "id": "5ac21419-e1f6-4b30-bcb7-d9e01512c4d2",
               "leftValue": "={{ $('Guard').first().json.action }}",
               "rightValue": "outline",
               "operator": {
@@ -517,7 +517,7 @@
       }
     },
     {
-      "id": "f5dc0e44-3f44-4bac-8d61-b4c203005089",
+      "id": "46fe93a9-e7b1-4148-87e8-4fb8c2893aab",
       "name": "Validate outline input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -530,7 +530,7 @@
       }
     },
     {
-      "id": "e28eae4d-c587-4a57-9686-579d2208c384",
+      "id": "619bdd73-575a-4262-aa4a-8457cf6581af",
       "name": "Outline input OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -547,7 +547,7 @@
           },
           "conditions": [
             {
-              "id": "848e0d4b-2403-4ea5-8cc6-efd72d6ebe03",
+              "id": "8ef35dc0-00fc-4020-82a1-23935e0e7350",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -563,7 +563,7 @@
       }
     },
     {
-      "id": "9407dd9a-72e5-444e-a97a-414437c29fc7",
+      "id": "016605b1-249e-4e06-8c6b-bb116c0084cf",
       "name": "Load outline prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -586,7 +586,7 @@
       }
     },
     {
-      "id": "7c638193-dfee-4360-ba95-34b21bb1a059",
+      "id": "8230f6e6-83ba-40e2-9bd5-55d2d94e8b69",
       "name": "Load outline schema",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -609,7 +609,7 @@
       }
     },
     {
-      "id": "d08aa028-2c74-474b-a1f8-d753d6928fc5",
+      "id": "2e3f97e6-7ae5-4ac6-8036-30f5b7e4cf42",
       "name": "Build outline request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -623,7 +623,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "651fc39d-6ec0-4f93-a228-0bb0616d14e5",
+      "id": "e4bbbd5c-df0a-4651-9a0c-313cd70e5aae",
       "name": "OpenAI: create outline",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -655,7 +655,7 @@
       }
     },
     {
-      "id": "1acdc0e8-7ef0-419a-bb53-205de2f8e364",
+      "id": "dae9e362-5683-48b5-a3a7-6a2ae61a239a",
       "name": "Check outline",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -669,7 +669,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "3a636c47-7937-46aa-9009-63a1d59a6b95",
+      "id": "fdc8d440-ac05-46d4-a67d-5a2c1efeeded",
       "name": "Attach pass (outline)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -683,7 +683,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "654d2994-8ee0-441b-a43b-1f0477b3f8c1",
+      "id": "9af9fbd1-859b-4920-807f-a8597f9b9e1c",
       "name": "Validate section input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -696,7 +696,7 @@
       }
     },
     {
-      "id": "a840ee7b-143f-4a0a-8f11-48b0c2a26365",
+      "id": "1e015dd6-bb9e-4669-a9b4-a7c7639bd318",
       "name": "Section input OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -713,7 +713,7 @@
           },
           "conditions": [
             {
-              "id": "e3a7b1bf-ed86-4cf4-a3e7-488d41cf38b0",
+              "id": "2c4a7493-4450-4295-8b1e-f16a90b5775f",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -729,7 +729,7 @@
       }
     },
     {
-      "id": "b77ec86c-066f-4d04-be3d-83c6d0343e5a",
+      "id": "25380895-601a-4a08-ba2c-d609ebe3c380",
       "name": "Load section prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -752,7 +752,7 @@
       }
     },
     {
-      "id": "5c847ecc-5597-4338-9002-610cafacaa9c",
+      "id": "9e4e25a6-ac80-4b31-a6de-f680e5f020f9",
       "name": "Load section schema",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -775,7 +775,7 @@
       }
     },
     {
-      "id": "6f146bcf-3e74-4e36-9332-7d8ba11be8d4",
+      "id": "be7d8d99-86ce-46fb-a732-26143450891c",
       "name": "Build section request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -789,7 +789,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "a4de4f69-0a18-4e13-b9bb-b2e149f6e51b",
+      "id": "357914d9-92db-4a69-a6a3-57c067d59ee7",
       "name": "OpenAI: write section",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -821,7 +821,7 @@
       }
     },
     {
-      "id": "c0c004ff-fed7-4ea3-b183-38e988d6198c",
+      "id": "4c18eaf5-457e-4ea3-a946-ffd44b472305",
       "name": "Check section",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -835,7 +835,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "ea5b933a-baab-48f1-b549-00aa144c8ab1",
+      "id": "594854d4-f0a9-46da-8533-e8d23577ba8d",
       "name": "Attach pass (section)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -849,7 +849,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "aa1e12d1-30e6-4f87-ae50-9d33ef4163fb",
+      "id": "0013c58a-77c9-4a60-bd27-59904de0457d",
       "name": "Respond: success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -874,7 +874,7 @@
       }
     },
     {
-      "id": "6e16e633-bf0e-44ab-935b-b58b8818880c",
+      "id": "7fba8ea7-d3c8-438d-88c2-f6184a1760cf",
       "name": "Respond: error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -899,7 +899,7 @@
       }
     },
     {
-      "id": "6382d9ea-5e69-4308-b250-3adc5b40ff29",
+      "id": "2797e058-f32b-4690-88c7-00778b7f1239",
       "name": "Respond: generation failed (502)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -924,7 +924,7 @@
       }
     },
     {
-      "id": "d6e45408-1b96-4923-9cec-bdbcb2a1d1ee",
+      "id": "903b8b32-bf70-46c5-a03a-bacbc8020410",
       "name": "Setup notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

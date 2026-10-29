@@ -122,9 +122,13 @@ One workflow with four fixed webhook addresses (`/webhook/lead-magnet/outline`, 
 
 **`/pdf` step (v3.2)**
 - Request: `{ "pass": "...", "html": "<!doctype html>…", "filename": "My title" }`. Response: the PDF file (`application/pdf`, downloaded as `<filename>.pdf`), or the usual JSON error.
-- **Validate PDF input** refuses anything that is not the tool's own document: over 4 MB, scripts, frames, forms, `on…=` handlers, meta refresh, or a missing `<main class="lmt …">`. Setting: `APIFY_ACTOR` (`username~lead-magnet-pdf`).
+- **Validate PDF input** refuses anything that is not the tool's own document: over 4 MB, scripts, frames, forms, `on…=` handlers, meta refresh, or a missing `<main class="lmt …">`. Setting: `APIFY_ACTOR` (`username~lead-magnet-pdf`, shown by the setup workflow below).
 - **Apify: make PDF** calls the actor's `run-sync` API (1024 MB, 120 s, 2 retries) with the **Apify account** credential. **Check PDF** makes sure the answer really is a PDF.
 - In the actor, the document is printed with scripts blocked by a Content-Security-Policy and every network request blocked except Google Fonts, so a crafted document can't run code or reach other sites. See `apify/lead-magnet-pdf/README.md` for the Apify setup.
+
+### One-time: `apify-setup-workflow.json` (Lead Magnet PDF: one-time Apify setup)
+
+Creates the private actor from this repo through the Apify API with the same **Apify account** credential, builds it, makes one test PDF, and shows the `APIFY_ACTOR` value. No Apify Console access needed. Run it by hand (no need to activate it). It is safe to run again: it reuses the actor and rebuilds it, which is how actor code changes go live. If the build fails, the **Build failed** node shows the end of the build log.
 
 Error codes the page understands: `forbidden_origin` (403), `verify_required` / `verify_failed` (403), `rate_limited` (429), `daily_limit` (503), `invalid_input` (400), `rejected` (200), `generation_failed` (502). For `/pdf`, any error shows the "Use the print window" backup.
 
@@ -184,4 +188,4 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
 - [x] **Phase 7** — hardening: Turnstile, signed writing pass, rate limits, daily cap, origin check, no success logs, prompt fixes (outline v3, section v2) — frontend `v0.3.0`, workflow v3
 - [x] **Phase 8** — landing page around the tool, one download button under the preview — frontend `v0.4.0`
-- [ ] **Last step** — real one-click PDF download through a private Apify actor, print window kept as the backup — frontend `v0.5.0`, workflow v3.2, `apify/lead-magnet-pdf` (built; waiting for the actor setup in Apify and a live test)
+- [ ] **Last step** — real one-click PDF download through a private Apify actor, print window kept as the backup — frontend `v0.5.0`, workflow v3.2, `apify/lead-magnet-pdf` (built; next: run the setup workflow, then a live test)

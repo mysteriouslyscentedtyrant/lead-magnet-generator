@@ -9,7 +9,13 @@ so visitors get a real one-click download. Called by the n8n workflow *Lead Magn
   except Google Fonts and embedded `data:` images. Nothing is fetched from other sites.
 - **Resources:** 1024 MB memory, a few seconds per PDF.
 
-## Setup (Apify Console, about 10 minutes)
+## Setup option 1: from n8n (recommended, no Apify Console access needed)
+
+Import `n8n/apify-setup-workflow.json`, select the **Apify account** credential in its 7 Apify nodes and click
+**Execute workflow**. It creates this actor (private, 1024 MB, 120 s), builds it, makes a test PDF and shows the
+`APIFY_ACTOR` value for the main workflow. Run it again to rebuild after code changes.
+
+## Setup option 2: Apify Console (about 10 minutes)
 
 1. **Actors → Development → Develop new → Link Git repository** (or create any actor and open its **Source** tab).
 2. **Source type:** Git repository. **Git URL:**

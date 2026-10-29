@@ -1,0 +1,622 @@
+{
+  "name": "Lead Magnet PDF: one-time Apify setup",
+  "nodes": [
+    {
+      "id": "54bc6021-4128-4f53-9b24-5658ec2db09d",
+      "name": "How to use",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -120
+      ],
+      "parameters": {
+        "width": 640,
+        "height": 300,
+        "content": "## Lead Magnet PDF: one-time Apify setup\n1. Select the **Apify account** credential in the 7 Apify nodes.\n2. Click **Execute workflow** (it takes 2-6 minutes: the first build installs Chrome).\n3. Open **Result**: copy `APIFY_ACTOR` into the node **Validate PDF input** of *Lead Magnet API*. The test PDF is attached there too.\n\nIf it stops at **Build failed**, copy `logEnd` and send it over.\nNo need to activate this workflow. Run it again after the actor code changes on GitHub (it rebuilds)."
+      }
+    },
+    {
+      "id": "14a68e61-86e1-478e-91c8-6f3b528d713c",
+      "name": "Run setup",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "626c583d-d84f-40f6-bca7-eb00100e10cf",
+      "name": "Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ============================ SETTINGS ============================\n// Creates (once) and builds the private Apify actor that makes the lead magnet PDFs,\n// then runs one test PDF. Safe to run again: it reuses the actor if it already exists\n// and rebuilds it from GitHub (use that after the actor code changes).\nconst ACTOR_NAME = 'lead-magnet-pdf';\nconst GIT_REPO_URL = 'https://github.com/mysteriouslyscentedtyrant/lead-magnet-generator#main:apify/lead-magnet-pdf';\nconst VERSION = '1.0';\nconst MEMORY_MB = 1024;\nconst TIMEOUT_SECS = 120;\n// ==================================================================\n\nconst testHtml = '<!doctype html><html><head><meta charset=\"utf-8\">'\n  + '<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap\">'\n  + '<style>@page { size: A4; margin: 0 } body { margin: 0; font-family: Outfit, sans-serif; }'\n  + '.c { height: 297mm; box-sizing: border-box; padding: 40mm 25mm; background: #353AF0; color: #fff; }'\n  + 'h1 { font-size: 40pt; margin: 0 0 12mm; } p { font-size: 14pt; line-height: 1.5; }'\n  + 'a { display: inline-block; margin-top: 10mm; padding: 5mm 9mm; border-radius: 3mm; background: #fff; color: #353AF0; font-weight: 700; text-decoration: none; }</style>'\n  + '</head><body><div class=\"c\"><h1>Test PDF</h1><p>If you can read this in the Outfit font on a blue page, the Lead Magnet PDF actor works.</p>'\n  + '<a href=\"https://systeme.io\">A clickable button</a></div></body></html>';\n\nreturn [{ json: {\n  actorName: ACTOR_NAME,\n  version: VERSION,\n  createBody: {\n    name: ACTOR_NAME,\n    title: 'Lead Magnet PDF',\n    description: 'Private: converts a Lead Magnet Generator document to a PDF with headless Chrome. Called by the n8n workflow Lead Magnet API.',\n    isPublic: false,\n    versions: [{ versionNumber: VERSION, sourceType: 'GIT_REPO', gitRepoUrl: GIT_REPO_URL, buildTag: 'latest' }],\n    defaultRunOptions: { build: 'latest', timeoutSecs: TIMEOUT_SECS, memoryMbytes: MEMORY_MB },\n  },\n  memory: MEMORY_MB,\n  timeout: TIMEOUT_SECS,\n  testBody: { html: testHtml },\n} }];\n"
+      }
+    },
+    {
+      "id": "f8d5bc73-84d8-41e7-8d75-c87914b7a702",
+      "name": "Apify: who am I",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.apify.com/v2/users/me",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "d4e11004-648b-433b-ae3c-fbc0a6819e6c",
+      "name": "Apify: find actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.apify.com/v2/actors/' + $json.data.username + '~' + $('Settings').first().json.actorName }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "212626ff-395a-4fea-a068-858dd0925394",
+      "name": "Actor exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "9406fc66-e7a9-47e9-9305-a1ffc59b6b5a",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "dbe5c5c8-5250-4cd0-933f-4e22f551fd48",
+      "name": "Use existing actor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// The actor already exists: reuse it (a new build picks up the latest code from GitHub).\nconst r = $input.first().json;\nconst a = (r.body && r.body.data) || {};\nreturn [{ json: { actorId: a.id, fullName: a.username + '~' + a.name, created: false } }];\n"
+      }
+    },
+    {
+      "id": "a334a1c0-875e-4674-adb0-472206d3bdf7",
+      "name": "Apify: create actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        400
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/actors",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Settings').first().json.createBody) }}"
+      }
+    },
+    {
+      "id": "12701310-1455-4957-9eeb-c0408455daa6",
+      "name": "New actor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        400
+      ],
+      "parameters": {
+        "jsCode": "const a = $input.first().json.data || {};\nif (!a.id) throw new Error('Apify did not return the new actor. Check the \"Apify: create actor\" output.');\nreturn [{ json: { actorId: a.id, fullName: a.username + '~' + a.name, created: true } }];\n"
+      }
+    },
+    {
+      "id": "5ab6a408-7a52-411b-abe0-0f61d3a987d9",
+      "name": "Actor ready",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Same shape whichever way the actor was found: { actorId, fullName, created }.\nreturn [{ json: $input.first().json }];\n"
+      }
+    },
+    {
+      "id": "2ffd7ff3-9369-47a4-ae28-131940165e19",
+      "name": "Apify: start build",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.apify.com/v2/actors/' + $json.actorId + '/builds?version=' + $('Settings').first().json.version + '&tag=latest&waitForFinish=60' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "aaad56d2-a786-4ded-a0b8-c606426f95d6",
+      "name": "Build status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Reads the build state. Loops through \"Apify: check build\" (up to ~15 minutes) while it is still building.\nconst b = $input.first().json.data || {};\nif (!b.id) throw new Error('Apify did not return a build. Check the previous node output.');\nif ($runIndex > 15) throw new Error('The build is taking more than 15 minutes. Open Apify Console > Actors > lead-magnet-pdf > Builds to see it.');\nreturn [{ json: { buildId: b.id, status: b.status, building: b.status === 'READY' || b.status === 'RUNNING', checks: $runIndex + 1 } }];\n"
+      }
+    },
+    {
+      "id": "d280bb3e-c4c0-4791-b84a-11666b2aa044",
+      "name": "Still building?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f85c589d-2f4e-4457-8530-26b09b70f8c9",
+              "leftValue": "={{ $json.building }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "149ce4b4-0203-42d2-b2a9-912833211607",
+      "name": "Apify: check build",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        140
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.apify.com/v2/actor-builds/' + $json.buildId + '?waitForFinish=60' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "dbea894a-781b-47db-8133-f14d1ce6cce1",
+      "name": "Build OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        420
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "fddd7cc9-3745-417d-b176-fde699dad887",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bf052752-e508-44e5-b707-6ad576642e09",
+      "name": "Apify: test PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        340
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.apify.com/v2/actors/' + $('Actor ready').first().json.actorId + '/run-sync?timeout=' + $('Settings').first().json.timeout + '&memory=' + $('Settings').first().json.memory }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Settings').first().json.testBody) }}"
+      }
+    },
+    {
+      "id": "89434f42-d99a-40ea-b40c-cd7410e44303",
+      "name": "Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        340
+      ],
+      "parameters": {
+        "jsCode": "// Checks the test PDF and shows the value to paste into the main workflow.\nconst item = $input.first();\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst isPdf = buf.length > 500 && buf.subarray(0, 5).toString('latin1') === '%PDF-';\nconst actor = $('Actor ready').first().json;\nif (!isPdf) {\n  return [{ json: { ok: false, message: 'The actor built, but the test did not return a PDF. Send the \"Apify: test PDF\" output over to get it fixed.', received: buf.subarray(0, 300).toString('utf8') } }];\n}\nitem.binary.data.fileName = 'apify-test.pdf';\nitem.binary.data.mimeType = 'application/pdf';\nreturn [{\n  json: {\n    ok: true,\n    APIFY_ACTOR: actor.fullName,\n    message: 'Done. In the workflow \"Lead Magnet API\", open the node \"Validate PDF input\" and set APIFY_ACTOR to the value above.',\n    actorCreated: actor.created,\n    testPdfKB: Math.round(buf.length / 1024),\n  },\n  binary: item.binary,\n}];\n"
+      }
+    },
+    {
+      "id": "5353bb81-478d-4800-b9c6-43c0f733eb8b",
+      "name": "Apify: build log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        540
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.apify.com/v2/logs/' + $json.buildId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "f4b4d789-e04a-4fb6-bcfa-49744fdb97dd",
+      "name": "Build failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        540
+      ],
+      "parameters": {
+        "jsCode": "// The build failed: keep the end of the build log so it can be shared for debugging.\nconst log = String($input.first().json.data || '');\nreturn [{ json: {\n  ok: false,\n  message: 'The actor build failed (status: ' + $('Build status').last().json.status + '). Copy \"logEnd\" and send it over to get it fixed.',\n  buildId: $('Build status').last().json.buildId,\n  logEnd: log.slice(-4000),\n} }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Run setup": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Apify: who am I",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: who am I": {
+      "main": [
+        [
+          {
+            "node": "Apify: find actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: find actor": {
+      "main": [
+        [
+          {
+            "node": "Actor exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actor exists?": {
+      "main": [
+        [
+          {
+            "node": "Use existing actor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apify: create actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use existing actor": {
+      "main": [
+        [
+          {
+            "node": "Actor ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: create actor": {
+      "main": [
+        [
+          {
+            "node": "New actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New actor": {
+      "main": [
+        [
+          {
+            "node": "Actor ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actor ready": {
+      "main": [
+        [
+          {
+            "node": "Apify: start build",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: start build": {
+      "main": [
+        [
+          {
+            "node": "Build status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build status": {
+      "main": [
+        [
+          {
+            "node": "Still building?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still building?": {
+      "main": [
+        [
+          {
+            "node": "Apify: check build",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: check build": {
+      "main": [
+        [
+          {
+            "node": "Build status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build OK?": {
+      "main": [
+        [
+          {
+            "node": "Apify: test PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apify: build log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: test PDF": {
+      "main": [
+        [
+          {
+            "node": "Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: build log": {
+      "main": [
+        [
+          {
+            "node": "Build failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {}
+}
