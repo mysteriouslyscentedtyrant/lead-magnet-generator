@@ -1,0 +1,15 @@
+{
+  "title": "Lead Magnet PDF input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "html": {
+      "title": "HTML document",
+      "type": "string",
+      "description": "The complete print-ready HTML document sent by the Lead Magnet Generator (via n8n).",
+      "editor": "textarea",
+      "prefill": "<!doctype html><html><head><meta charset=\"utf-8\"><style>@page { size: A4; margin: 20mm } body { font-family: sans-serif } h1 { color: #181C39 }</style></head><body><h1>Test PDF</h1><p>If you can read this in the OUTPUT record, the actor works.</p></body></html>"
+    }
+  },
+  "required": ["html"]
+}

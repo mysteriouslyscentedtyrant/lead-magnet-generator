@@ -1,8 +1,8 @@
 {
-  "name": "Lead Magnet API (v3.1, protected)",
+  "name": "Lead Magnet API (v3.2, protected)",
   "nodes": [
     {
-      "id": "45da1cfb-8ed8-41f3-bfa3-5341ff69434b",
+      "id": "a8928f67-abfa-43c9-8af5-74cc6c58d6ae",
       "name": "Webhook: outline",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -10,7 +10,7 @@
         -260,
         240
       ],
-      "webhookId": "5e56562c-9b48-4dcf-ace5-a67b022eb236",
+      "webhookId": "436fa260-4a36-4e59-b7c1-0535d2b16f24",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/outline",
@@ -21,7 +21,7 @@
       }
     },
     {
-      "id": "0c96b72b-25c8-490c-961b-c58fe4c932c1",
+      "id": "948a92e8-4801-4b1b-aef9-2f96f6c22f50",
       "name": "Tag: outline",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -34,7 +34,7 @@
       }
     },
     {
-      "id": "7de5b7b2-44ef-4f4c-9472-66ed0f4c4fa9",
+      "id": "b6d241af-9291-448f-81a4-98812aa1094f",
       "name": "Webhook: section",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -42,7 +42,7 @@
         -260,
         400
       ],
-      "webhookId": "83bf72e3-f1a1-471b-a262-44cb58851ed9",
+      "webhookId": "77b2d05f-0c53-44eb-9a2f-6a2daf6d41fc",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/section",
@@ -53,7 +53,7 @@
       }
     },
     {
-      "id": "210b0452-c433-4c5c-99b5-10305362a685",
+      "id": "2917ba22-ed06-46de-9b21-9ddcff3bf0d7",
       "name": "Tag: section",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -66,7 +66,7 @@
       }
     },
     {
-      "id": "27c1ec28-a50c-4952-b479-647c842fa52f",
+      "id": "b3841eae-e42f-4ff9-aae6-f49e059401df",
       "name": "Webhook: pass",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -74,7 +74,7 @@
         -260,
         560
       ],
-      "webhookId": "a9daf575-9c65-433c-ab6a-ca5e7116dbc4",
+      "webhookId": "6c6324ff-4f18-40fa-9463-1ab2f663b41e",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-magnet/pass",
@@ -85,7 +85,7 @@
       }
     },
     {
-      "id": "24a48b85-0baf-4455-81db-b865c3d98214",
+      "id": "7425116d-3c5d-45a3-bb57-f786bbb6993b",
       "name": "Tag: pass",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -98,7 +98,39 @@
       }
     },
     {
-      "id": "dca85b93-12d0-4c57-8645-a6264c5a3a65",
+      "id": "63717b2e-66a6-466c-b5cc-7f71510f4a26",
+      "name": "Webhook: pdf",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        720
+      ],
+      "webhookId": "a2477633-751c-4a21-95db-c506906ca7aa",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-magnet/pdf",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://sehnounberoual.systeme.io,https://systeme.io,https://www.systeme.io"
+        }
+      }
+    },
+    {
+      "id": "9fc5f37e-fa9e-4a10-83f3-130d1074e523",
+      "name": "Tag: pdf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        720
+      ],
+      "parameters": {
+        "jsCode": "// Marks which address was called, then hands over to Guard.\nreturn [{ json: Object.assign({}, $input.first().json, { action: 'pdf' }) }];\n"
+      }
+    },
+    {
+      "id": "4b75b7e3-3d74-4d9c-88af-a01ad726586b",
       "name": "Guard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -107,11 +139,11 @@
         400
       ],
       "parameters": {
-        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// Pages allowed to use this tool (exact origins: https:// + domain, no path).\nconst ALLOWED_ORIGINS = ['https://sehnounberoual.systeme.io', 'https://systeme.io', 'https://www.systeme.io'];\n// Cloudflare Turnstile Secret Key. Leave '' to switch the human check off.\nconst TURNSTILE_SECRET = '';\n// Signs the writing pass. Any long random text; '' = generated automatically once.\nconst PASS_SECRET = '';\nconst DAILY_LIMIT = 1000;        // lead magnets (outlines) per day, all visitors together (UTC day)\nconst OUTLINES_PER_HOUR = 6;     // per visitor\nconst SECTIONS_PER_HOUR = 80;    // per visitor (an ebook is up to 9 sections, plus rewrites)\nconst PASS_HOURS = 24;           // how long a writing pass stays valid\n// ===================================================================================\n\n// Each webhook (outline / section / pass) tags its request with `action` before this node.\nconst wh = $input.first().json;\nconst headers = wh.headers || {};\nconst body = wh.body && typeof wh.body === 'object' ? wh.body : {};\nconst action = String(wh.action || '').toLowerCase();\n\nfunction stop(statusCode, code, message, extra) {\n  return [{ json: Object.assign({ ok: false, statusCode: statusCode, response: { ok: false, code: code, message: message } }, extra || {}) }];\n}\n\n// ---------- tiny SHA-256 / HMAC (no external modules needed) ----------\nfunction sha256(bytes) {\n  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];\n  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];\n  const l = bytes.length, withPad = ((l + 9 + 63) >> 6) << 6;\n  const m = new Uint8Array(withPad); m.set(bytes); m[l] = 0x80;\n  const bits = l * 8; m[withPad - 4] = bits >>> 24; m[withPad - 3] = (bits >>> 16) & 255; m[withPad - 2] = (bits >>> 8) & 255; m[withPad - 1] = bits & 255;\n  m[withPad - 5] = Math.floor(l / 0x20000000) & 255;\n  const w = new Array(64);\n  for (let i = 0; i < withPad; i += 64) {\n    for (let t = 0; t < 16; t++) w[t] = (m[i + 4 * t] << 24) | (m[i + 4 * t + 1] << 16) | (m[i + 4 * t + 2] << 8) | m[i + 4 * t + 3];\n    for (let t = 16; t < 64; t++) {\n      const a = w[t - 15], b = w[t - 2];\n      const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);\n      const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);\n      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let t = 0; t < 64; t++) {\n      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));\n      const ch = (e & f) ^ (~e & g);\n      const t1 = (h + S1 + ch + K[t] + w[t]) | 0;\n      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));\n      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;\n    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;\n  }\n  const out = new Uint8Array(32);\n  H.forEach((v, i) => { out[4 * i] = v >>> 24; out[4 * i + 1] = (v >>> 16) & 255; out[4 * i + 2] = (v >>> 8) & 255; out[4 * i + 3] = v & 255; });\n  return out;\n}\nfunction utf8(s) { return Buffer.from(String(s), 'utf8'); }\nfunction hex(b) { return Array.from(b, x => x.toString(16).padStart(2, '0')).join(''); }\nfunction hmac(key, msg) {\n  let k = utf8(key); if (k.length > 64) k = sha256(k);\n  const ip = new Uint8Array(64), op = new Uint8Array(64);\n  for (let i = 0; i < 64; i++) { ip[i] = (k[i] || 0) ^ 0x36; op[i] = (k[i] || 0) ^ 0x5c; }\n  const mb = utf8(msg);\n  const inner = new Uint8Array(64 + mb.length); inner.set(ip); inner.set(mb, 64);\n  const ih = sha256(inner);\n  const outer = new Uint8Array(96); outer.set(op); outer.set(ih, 64);\n  return hex(sha256(outer));\n}\nfunction randomHex(n) {\n  const b = new Uint8Array(n);\n  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b);\n  else for (let i = 0; i < n; i++) b[i] = Math.floor(Math.random() * 256);\n  return hex(b);\n}\nfunction b64url(s) { return Buffer.from(s, 'utf8').toString('base64').replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_'); }\nfunction unb64url(s) { return Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); }\nfunction safeEqual(a, b) { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }\n\n// ---------- storage (workflow static data: kept between runs of the active workflow) ----------\nconst sd = $getWorkflowStaticData('global');\nif (!sd.secret) sd.secret = randomHex(32);\nconst secret = PASS_SECRET || sd.secret;\nconst now = new Date();\nconst day = now.toISOString().slice(0, 10), hour = now.toISOString().slice(0, 13);\nif (sd.day !== day) { sd.day = day; sd.outlines = 0; sd.sections = 0; }\nif (sd.hour !== hour) { sd.hour = hour; sd.visitors = {}; }\nconst minutesLeft = 60 - now.getUTCMinutes();\n\nfunction makePass() {\n  const payload = b64url(JSON.stringify({ e: Math.floor(Date.now() / 1000) + PASS_HOURS * 3600, n: randomHex(6) }));\n  return payload + '.' + hmac(secret, payload).slice(0, 40);\n}\nfunction passValid(p) {\n  if (typeof p !== 'string' || p.length > 300 || p.indexOf('.') < 1) return false;\n  const [payload, sig] = p.split('.');\n  if (!safeEqual(sig || '', hmac(secret, payload).slice(0, 40))) return false;\n  try { const d = JSON.parse(unb64url(payload)); return typeof d.e === 'number' && d.e > Date.now() / 1000; } catch (e) { return false; }\n}\n\n// ---------- checks ----------\nif (action !== 'outline' && action !== 'section' && action !== 'pass') return stop(404, 'not_found', 'Unknown address.');\n\nconst origin = String(headers.origin || '');\nif (ALLOWED_ORIGINS.length && ALLOWED_ORIGINS.indexOf(origin) === -1) {\n  return stop(403, 'forbidden_origin', 'This tool can only be used from its own page.');\n}\n\n// Visitor key: hashed IP (never stored in clear). No IP found = no per-visitor limit.\nconst ip = String(headers['cf-connecting-ip'] || String(headers['x-forwarded-for'] || '').split(',')[0] || headers['x-real-ip'] || '').trim();\nconst vkey = ip ? hmac(secret, 'ip:' + ip).slice(0, 16) : '';\nconst visitor = vkey ? (sd.visitors[vkey] = sd.visitors[vkey] || { o: 0, s: 0 }) : { o: 0, s: 0 };\n\nconst token = typeof body.turnstile === 'string' ? body.turnstile.slice(0, 2048) : '';\nlet verify = false, newPass = '';\n\nif (action === 'outline') {\n  if (sd.outlines >= DAILY_LIMIT) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.o >= OUTLINES_PER_HOUR) return stop(429, 'rate_limited', 'You have created several lead magnets in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o++; sd.outlines++;\n  newPass = makePass();\n} else if (action === 'pass') {\n  // Fresh writing pass after the old one expired. No AI call.\n  if (visitor.o >= OUTLINES_PER_HOUR * 3) return stop(429, 'rate_limited', 'Too many attempts. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o += 0.34;\n  newPass = makePass();\n} else {\n  if (sd.sections >= DAILY_LIMIT * 12) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.s >= SECTIONS_PER_HOUR) return stop(429, 'rate_limited', 'You have written a lot of sections in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (!passValid(body.pass)) {\n    if (TURNSTILE_SECRET) {\n      if (!token) return stop(403, 'verify_required', 'For your security, please confirm you are human to keep writing.');\n      verify = true;\n    }\n    newPass = makePass();\n  }\n  visitor.s++; sd.sections++;\n}\n\nreturn [{ json: { ok: true, statusCode: 200, action: action, verify: verify, newPass: newPass, body: body,\n  turnstileBody: verify ? { secret: TURNSTILE_SECRET, response: token, remoteip: ip || undefined } : null,\n  allowedHosts: ALLOWED_ORIGINS.map(o => o.replace(/^https?:\\/\\//, '')) } }];\n"
+        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// Pages allowed to use this tool (exact origins: https:// + domain, no path).\nconst ALLOWED_ORIGINS = ['https://sehnounberoual.systeme.io', 'https://systeme.io', 'https://www.systeme.io'];\n// Cloudflare Turnstile Secret Key. Leave '' to switch the human check off.\nconst TURNSTILE_SECRET = '';\n// Signs the writing pass. Any long random text; '' = generated automatically once.\nconst PASS_SECRET = '';\nconst DAILY_LIMIT = 1000;        // lead magnets (outlines) per day, all visitors together (UTC day)\nconst OUTLINES_PER_HOUR = 6;     // per visitor\nconst SECTIONS_PER_HOUR = 80;    // per visitor (an ebook is up to 9 sections, plus rewrites)\nconst PASS_HOURS = 24;           // how long a writing pass stays valid\nconst PDFS_PER_HOUR = 20;        // per visitor (each one is a short Apify run)\n// ===================================================================================\n\n// Each webhook (outline / section / pass) tags its request with `action` before this node.\nconst wh = $input.first().json;\nconst headers = wh.headers || {};\nconst body = wh.body && typeof wh.body === 'object' ? wh.body : {};\nconst action = String(wh.action || '').toLowerCase();\n\nfunction stop(statusCode, code, message, extra) {\n  return [{ json: Object.assign({ ok: false, statusCode: statusCode, response: { ok: false, code: code, message: message } }, extra || {}) }];\n}\n\n// ---------- tiny SHA-256 / HMAC (no external modules needed) ----------\nfunction sha256(bytes) {\n  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];\n  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];\n  const l = bytes.length, withPad = ((l + 9 + 63) >> 6) << 6;\n  const m = new Uint8Array(withPad); m.set(bytes); m[l] = 0x80;\n  const bits = l * 8; m[withPad - 4] = bits >>> 24; m[withPad - 3] = (bits >>> 16) & 255; m[withPad - 2] = (bits >>> 8) & 255; m[withPad - 1] = bits & 255;\n  m[withPad - 5] = Math.floor(l / 0x20000000) & 255;\n  const w = new Array(64);\n  for (let i = 0; i < withPad; i += 64) {\n    for (let t = 0; t < 16; t++) w[t] = (m[i + 4 * t] << 24) | (m[i + 4 * t + 1] << 16) | (m[i + 4 * t + 2] << 8) | m[i + 4 * t + 3];\n    for (let t = 16; t < 64; t++) {\n      const a = w[t - 15], b = w[t - 2];\n      const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);\n      const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);\n      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let t = 0; t < 64; t++) {\n      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));\n      const ch = (e & f) ^ (~e & g);\n      const t1 = (h + S1 + ch + K[t] + w[t]) | 0;\n      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));\n      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;\n    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;\n  }\n  const out = new Uint8Array(32);\n  H.forEach((v, i) => { out[4 * i] = v >>> 24; out[4 * i + 1] = (v >>> 16) & 255; out[4 * i + 2] = (v >>> 8) & 255; out[4 * i + 3] = v & 255; });\n  return out;\n}\nfunction utf8(s) { return Buffer.from(String(s), 'utf8'); }\nfunction hex(b) { return Array.from(b, x => x.toString(16).padStart(2, '0')).join(''); }\nfunction hmac(key, msg) {\n  let k = utf8(key); if (k.length > 64) k = sha256(k);\n  const ip = new Uint8Array(64), op = new Uint8Array(64);\n  for (let i = 0; i < 64; i++) { ip[i] = (k[i] || 0) ^ 0x36; op[i] = (k[i] || 0) ^ 0x5c; }\n  const mb = utf8(msg);\n  const inner = new Uint8Array(64 + mb.length); inner.set(ip); inner.set(mb, 64);\n  const ih = sha256(inner);\n  const outer = new Uint8Array(96); outer.set(op); outer.set(ih, 64);\n  return hex(sha256(outer));\n}\nfunction randomHex(n) {\n  const b = new Uint8Array(n);\n  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b);\n  else for (let i = 0; i < n; i++) b[i] = Math.floor(Math.random() * 256);\n  return hex(b);\n}\nfunction b64url(s) { return Buffer.from(s, 'utf8').toString('base64').replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_'); }\nfunction unb64url(s) { return Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); }\nfunction safeEqual(a, b) { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }\n\n// ---------- storage (workflow static data: kept between runs of the active workflow) ----------\nconst sd = $getWorkflowStaticData('global');\nif (!sd.secret) sd.secret = randomHex(32);\nconst secret = PASS_SECRET || sd.secret;\nconst now = new Date();\nconst day = now.toISOString().slice(0, 10), hour = now.toISOString().slice(0, 13);\nif (sd.day !== day) { sd.day = day; sd.outlines = 0; sd.sections = 0; sd.pdfs = 0; }\nsd.pdfs = sd.pdfs || 0;\nif (sd.hour !== hour) { sd.hour = hour; sd.visitors = {}; }\nconst minutesLeft = 60 - now.getUTCMinutes();\n\nfunction makePass() {\n  const payload = b64url(JSON.stringify({ e: Math.floor(Date.now() / 1000) + PASS_HOURS * 3600, n: randomHex(6) }));\n  return payload + '.' + hmac(secret, payload).slice(0, 40);\n}\nfunction passValid(p) {\n  if (typeof p !== 'string' || p.length > 300 || p.indexOf('.') < 1) return false;\n  const [payload, sig] = p.split('.');\n  if (!safeEqual(sig || '', hmac(secret, payload).slice(0, 40))) return false;\n  try { const d = JSON.parse(unb64url(payload)); return typeof d.e === 'number' && d.e > Date.now() / 1000; } catch (e) { return false; }\n}\n\n// ---------- checks ----------\nif (['outline', 'section', 'pass', 'pdf'].indexOf(action) === -1) return stop(404, 'not_found', 'Unknown address.');\n\nconst origin = String(headers.origin || '');\nif (ALLOWED_ORIGINS.length && ALLOWED_ORIGINS.indexOf(origin) === -1) {\n  return stop(403, 'forbidden_origin', 'This tool can only be used from its own page.');\n}\n\n// Visitor key: hashed IP (never stored in clear). No IP found = no per-visitor limit.\nconst ip = String(headers['cf-connecting-ip'] || String(headers['x-forwarded-for'] || '').split(',')[0] || headers['x-real-ip'] || '').trim();\nconst vkey = ip ? hmac(secret, 'ip:' + ip).slice(0, 16) : '';\nconst visitor = vkey ? (sd.visitors[vkey] = sd.visitors[vkey] || { o: 0, s: 0, p: 0 }) : { o: 0, s: 0, p: 0 };\nvisitor.p = visitor.p || 0;\n\nconst token = typeof body.turnstile === 'string' ? body.turnstile.slice(0, 2048) : '';\nlet verify = false, newPass = '';\n\nif (action === 'outline') {\n  if (sd.outlines >= DAILY_LIMIT) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.o >= OUTLINES_PER_HOUR) return stop(429, 'rate_limited', 'You have created several lead magnets in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o++; sd.outlines++;\n  newPass = makePass();\n} else if (action === 'pass') {\n  // Fresh writing pass after the old one expired. No AI call.\n  if (visitor.o >= OUTLINES_PER_HOUR * 3) return stop(429, 'rate_limited', 'Too many attempts. Please try again in about ' + minutesLeft + ' minutes.');\n  if (TURNSTILE_SECRET) {\n    if (!token) return stop(403, 'verify_required', 'Please confirm you are human, then try again.');\n    verify = true;\n  }\n  visitor.o += 0.34;\n  newPass = makePass();\n} else if (action === 'pdf') {\n  // A PDF needs a valid writing pass (so only people who created a lead magnet can convert). No AI call.\n  if (sd.pdfs >= DAILY_LIMIT * 3) return stop(503, 'daily_limit', 'The PDF service is very busy today. Use the print window instead.');\n  if (visitor.p >= PDFS_PER_HOUR) return stop(429, 'rate_limited', 'You have downloaded many PDFs in a short time. Please try again in about ' + minutesLeft + ' minutes, or use the print window.');\n  if (!passValid(body.pass)) {\n    if (TURNSTILE_SECRET) return stop(403, 'verify_required', 'For your security, please confirm you are human to download.');\n    newPass = makePass();\n  }\n  visitor.p++; sd.pdfs++;\n} else {\n  if (sd.sections >= DAILY_LIMIT * 12) return stop(503, 'daily_limit', 'The generator is very busy today. Please come back tomorrow.');\n  if (visitor.s >= SECTIONS_PER_HOUR) return stop(429, 'rate_limited', 'You have written a lot of sections in a short time. Please try again in about ' + minutesLeft + ' minutes.');\n  if (!passValid(body.pass)) {\n    if (TURNSTILE_SECRET) {\n      if (!token) return stop(403, 'verify_required', 'For your security, please confirm you are human to keep writing.');\n      verify = true;\n    }\n    newPass = makePass();\n  }\n  visitor.s++; sd.sections++;\n}\n\nreturn [{ json: { ok: true, statusCode: 200, action: action, verify: verify, newPass: newPass, body: body,\n  turnstileBody: verify ? { secret: TURNSTILE_SECRET, response: token, remoteip: ip || undefined } : null,\n  allowedHosts: ALLOWED_ORIGINS.map(o => o.replace(/^https?:\\/\\//, '')) } }];\n"
       }
     },
     {
-      "id": "6f16fa7f-3752-4cfe-9c37-7764f0d93d31",
+      "id": "58ba77aa-9a8c-4c30-a2d9-d03e001d8e9a",
       "name": "Allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -128,7 +160,7 @@
           },
           "conditions": [
             {
-              "id": "ca4a91e5-b445-40f9-9b41-e00cef3a1f96",
+              "id": "31e879cd-0bb8-48f3-95ac-4695b3cdf5a2",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -144,7 +176,7 @@
       }
     },
     {
-      "id": "ac9af448-63c2-4130-adea-2ff6aa2d9a54",
+      "id": "3502f910-5339-44be-b4fa-21ce4804c457",
       "name": "Human check needed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -161,7 +193,7 @@
           },
           "conditions": [
             {
-              "id": "2e238cdb-0e07-40cf-bc82-4d7a600d7d7b",
+              "id": "4bc04aa2-9e71-4428-9cb6-26177fbd2eb1",
               "leftValue": "={{ $json.verify }}",
               "rightValue": true,
               "operator": {
@@ -177,7 +209,7 @@
       }
     },
     {
-      "id": "ff2c0ca6-ebfd-44b9-9685-ac640c9f405a",
+      "id": "60a9b4bc-4f1c-4123-9790-14c7d2d69e43",
       "name": "Verify Turnstile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -198,7 +230,7 @@
       }
     },
     {
-      "id": "b2c453e5-1a5c-4351-8b8c-611ed4158e64",
+      "id": "91599177-472f-413b-a7f1-f289265b94b0",
       "name": "Check Turnstile",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -211,7 +243,7 @@
       }
     },
     {
-      "id": "770f45f5-c533-4e1b-b1be-37eac7bb97b7",
+      "id": "c88899c7-dc93-4eec-974a-2103bb8f6678",
       "name": "Human?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -228,7 +260,7 @@
           },
           "conditions": [
             {
-              "id": "d75f23f2-49ed-4e48-93b5-dfa0b9710731",
+              "id": "16a4b211-8175-4252-b895-d09be9374d70",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -244,7 +276,7 @@
       }
     },
     {
-      "id": "0ec45652-f7fe-4e41-bf08-2db591f4be82",
+      "id": "c5c9a1ca-adf3-4912-a791-51ac0b297f4e",
       "name": "Pass only?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -261,7 +293,7 @@
           },
           "conditions": [
             {
-              "id": "cf48888c-4a59-4e5c-ad2e-bbd3a6daeb15",
+              "id": "dfc30b37-2bd6-46ad-93ce-9b3874246282",
               "leftValue": "={{ $('Guard').first().json.action }}",
               "rightValue": "pass",
               "operator": {
@@ -276,7 +308,7 @@
       }
     },
     {
-      "id": "690f26b2-b6b1-447a-85fe-4cb8d2efd010",
+      "id": "044fa489-506c-46d0-a383-c3999d019f2a",
       "name": "Pass answer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -289,7 +321,171 @@
       }
     },
     {
-      "id": "7b85c55d-d67b-4702-9c0f-69d8722908d2",
+      "id": "997359cf-d2e6-4458-9284-681690dc7133",
+      "name": "PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        520
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "54ad7356-27b5-4661-88d5-dea63e725dd5",
+              "leftValue": "={{ $('Guard').first().json.action }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2b280012-52a1-4326-971f-e0b07019d8d4",
+      "name": "Validate PDF input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        980
+      ],
+      "parameters": {
+        "jsCode": "// ============================ SETTINGS (safe to change) ============================\n// Full name of the private Apify actor, with ~ instead of / (Apify Console shows it as username/lead-magnet-pdf).\nconst APIFY_ACTOR = 'REPLACE_WITH_APIFY_USERNAME~lead-magnet-pdf';\nconst MAX_HTML_BYTES = 4 * 1024 * 1024;   // the document incl. the embedded logo\nconst APIFY_MEMORY_MB = 1024;\n// ===================================================================================\n\nconst body = $('Guard').first().json.body || {};\nconst html = typeof body.html === 'string' ? body.html : '';\nfunction bad(message) {\n  return [{ json: { ok: false, statusCode: 400, response: { ok: false, code: 'invalid_input', message } } }];\n}\nif (!/^<!doctype html>/i.test(html.replace(/^\\s+/, ''))) return bad('The document is missing.');\nif (Buffer.byteLength(html, 'utf8') > MAX_HTML_BYTES) return bad('The document is too large. Try a smaller logo.');\n// Our renderer never produces these, so their presence means the request was crafted by hand.\nif (/<\\s*(script|iframe|frame|object|embed|base|form)\\b/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/<[^>]+\\son[a-z]+\\s*=/i.test(html)) return bad('The document contains content that is not allowed.');\nif (/http-equiv\\s*=\\s*[\"']?\\s*refresh/i.test(html)) return bad('The document contains content that is not allowed.');\nif (!/<main class=\"lmt lmt-t-[a-z]+ lmt-f-(ebook|guide|checklist)\"/.test(html)) return bad('This is not a lead magnet document.');\nif (/^REPLACE_WITH/.test(APIFY_ACTOR)) throw new Error('Set APIFY_ACTOR at the top of the \"Validate PDF input\" node.');\n\nconst filename = (String(body.filename || '').normalize('NFKD').replace(/[^\\w\\- ]+/g, '').trim().replace(/\\s+/g, '-').slice(0, 80) || 'lead-magnet') + '.pdf';\nreturn [{ json: {\n  ok: true,\n  filename,\n  url: 'https://api.apify.com/v2/acts/' + encodeURIComponent(APIFY_ACTOR) + '/run-sync?timeout=120&memory=' + APIFY_MEMORY_MB,\n  apifyBody: { html },\n} }];\n"
+      }
+    },
+    {
+      "id": "56b13cf1-8750-45db-9d36-ec840a530071",
+      "name": "PDF input OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        980
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "76b21e98-5135-44d7-811a-a3f7ab3ef104",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6b7624a8-abe6-43f4-a15b-6ab86bfaf9bc",
+      "name": "Apify: make PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        900
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "apifyApi": {
+          "id": "",
+          "name": "Apify account"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.apifyBody) }}",
+        "options": {
+          "timeout": 150000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "2c64f4c8-929f-45c1-9747-3621053e1eef",
+      "name": "Check PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        900
+      ],
+      "parameters": {
+        "jsCode": "// Makes sure Apify returned a real PDF, then names the file for the download.\nconst item = $input.first();\nconst bin = item.binary && item.binary.data;\nif (!bin) throw new Error('Apify returned no file.');\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nif (!buf || buf.length < 500 || buf.slice(0, 5).toString('latin1') !== '%PDF-') {\n  throw new Error('Apify did not return a PDF: ' + (buf ? buf.slice(0, 200).toString('utf8') : 'empty'));\n}\nbin.mimeType = 'application/pdf';\nbin.fileName = $('Validate PDF input').first().json.filename;\nreturn [{ json: { filename: bin.fileName, bytes: buf.length }, binary: { data: bin } }];\n"
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "4bfeaed3-559a-4021-ad78-5480f257e6d1",
+      "name": "Respond: PDF",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        900
+      ],
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "inputFieldName": "data",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/pdf"
+              },
+              {
+                "name": "Content-Disposition",
+                "value": "=attachment; filename=\"{{ $json.filename }}\""
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "11950f00-159e-4f18-8581-d548d6fd3448",
       "name": "Outline or section?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -306,7 +502,7 @@
           },
           "conditions": [
             {
-              "id": "e2e4c031-62ee-4a6c-ad7c-2ac35eb8d82f",
+              "id": "2b728fe1-e933-4006-9aaf-7dc5684844d1",
               "leftValue": "={{ $('Guard').first().json.action }}",
               "rightValue": "outline",
               "operator": {
@@ -321,7 +517,7 @@
       }
     },
     {
-      "id": "6011e9ad-643d-41e9-bffe-42b5cb5b7202",
+      "id": "f5dc0e44-3f44-4bac-8d61-b4c203005089",
       "name": "Validate outline input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -334,7 +530,7 @@
       }
     },
     {
-      "id": "118dc9b6-b81c-4ddd-a720-776d261beb01",
+      "id": "e28eae4d-c587-4a57-9686-579d2208c384",
       "name": "Outline input OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -351,7 +547,7 @@
           },
           "conditions": [
             {
-              "id": "21b438f2-1e9e-405d-982a-1b3228ce3ce3",
+              "id": "848e0d4b-2403-4ea5-8cc6-efd72d6ebe03",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -367,7 +563,7 @@
       }
     },
     {
-      "id": "56b75f1a-85a5-4004-8866-d343bf3a5367",
+      "id": "9407dd9a-72e5-444e-a97a-414437c29fc7",
       "name": "Load outline prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -390,7 +586,7 @@
       }
     },
     {
-      "id": "1875bc43-3c71-4d4b-8202-469d0d9849ce",
+      "id": "7c638193-dfee-4360-ba95-34b21bb1a059",
       "name": "Load outline schema",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -413,7 +609,7 @@
       }
     },
     {
-      "id": "c5c32682-8821-46f9-be79-00ae9d0c4943",
+      "id": "d08aa028-2c74-474b-a1f8-d753d6928fc5",
       "name": "Build outline request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -427,7 +623,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "23b67206-e1db-4276-8313-a856cfeef89d",
+      "id": "651fc39d-6ec0-4f93-a228-0bb0616d14e5",
       "name": "OpenAI: create outline",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -459,7 +655,7 @@
       }
     },
     {
-      "id": "b2f826fd-1936-436f-af01-31f4d9151282",
+      "id": "1acdc0e8-7ef0-419a-bb53-205de2f8e364",
       "name": "Check outline",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -473,7 +669,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "02ba05e6-7a06-41f3-9de4-e472cb34f85a",
+      "id": "3a636c47-7937-46aa-9009-63a1d59a6b95",
       "name": "Attach pass (outline)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -487,7 +683,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "b9299270-6f59-4805-abce-de363108d240",
+      "id": "654d2994-8ee0-441b-a43b-1f0477b3f8c1",
       "name": "Validate section input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -500,7 +696,7 @@
       }
     },
     {
-      "id": "7164b2f4-230f-4326-9f3e-08e78ec42b33",
+      "id": "a840ee7b-143f-4a0a-8f11-48b0c2a26365",
       "name": "Section input OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -517,7 +713,7 @@
           },
           "conditions": [
             {
-              "id": "6bb1b309-cc79-485a-94e0-7bb433a581d8",
+              "id": "e3a7b1bf-ed86-4cf4-a3e7-488d41cf38b0",
               "leftValue": "={{ $json.ok }}",
               "rightValue": true,
               "operator": {
@@ -533,7 +729,7 @@
       }
     },
     {
-      "id": "33b00900-901e-47d3-9e5d-af2951390133",
+      "id": "b77ec86c-066f-4d04-be3d-83c6d0343e5a",
       "name": "Load section prompt",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -556,7 +752,7 @@
       }
     },
     {
-      "id": "ddd4613d-43df-4e77-9f00-69a90a1e8d8e",
+      "id": "5c847ecc-5597-4338-9002-610cafacaa9c",
       "name": "Load section schema",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -579,7 +775,7 @@
       }
     },
     {
-      "id": "69173455-11a8-49f5-85dd-ac76f47c90f4",
+      "id": "6f146bcf-3e74-4e36-9332-7d8ba11be8d4",
       "name": "Build section request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -593,7 +789,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "ff1e0cc7-bb2a-425a-a2fe-82230001d258",
+      "id": "a4de4f69-0a18-4e13-b9bb-b2e149f6e51b",
       "name": "OpenAI: write section",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -625,7 +821,7 @@
       }
     },
     {
-      "id": "bc86188c-fd2e-4801-b751-2373e1f970f5",
+      "id": "c0c004ff-fed7-4ea3-b183-38e988d6198c",
       "name": "Check section",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -639,7 +835,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "5cae875f-d4cd-4ff5-b7fc-eb5ba9a27966",
+      "id": "ea5b933a-baab-48f1-b549-00aa144c8ab1",
       "name": "Attach pass (section)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -653,7 +849,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "56493d3d-a646-4bbc-b0a3-c7e95afa8edc",
+      "id": "aa1e12d1-30e6-4f87-ae50-9d33ef4163fb",
       "name": "Respond: success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -678,7 +874,7 @@
       }
     },
     {
-      "id": "21f8b738-ea7b-4832-b747-27176946f367",
+      "id": "6e16e633-bf0e-44ab-935b-b58b8818880c",
       "name": "Respond: error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -703,7 +899,7 @@
       }
     },
     {
-      "id": "bdba0c1c-b1a6-474a-8e97-fdaf2af5e6d6",
+      "id": "6382d9ea-5e69-4308-b250-3adc5b40ff29",
       "name": "Respond: generation failed (502)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -728,7 +924,7 @@
       }
     },
     {
-      "id": "08191653-7645-4cb0-b2c9-3c5cc3af065e",
+      "id": "d6e45408-1b96-4923-9cec-bdbcb2a1d1ee",
       "name": "Setup notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -740,7 +936,7 @@
         "width": 1040,
         "height": 380,
         "color": 4,
-        "content": "## Lead Magnet API (v3.1, protected)\nThree addresses, one protected flow: `/webhook/lead-magnet/outline`, `/section` and `/pass` (fresh writing pass, no AI).\n\n**Setup after import**\n1. Open **OpenAI: create outline** and **OpenAI: write section**, select your OpenAI credential in both.\n2. Open **Guard**: paste your Cloudflare Turnstile **Secret Key** in `TURNSTILE_SECRET` (leave '' to keep the human check off).\n3. Deactivate the old *Outline* and *Section* workflows, then **Save** and **Activate** this one.\n\n**Settings** at the top of **Guard**: allowed pages, daily limit (1,000), per-visitor limits, pass lifetime.\nModel and prompt version: top of **Validate outline input** / **Validate section input**.\n\nSuccessful runs are not stored (visitor privacy); failed runs are kept in Executions for debugging.\nCounters live in this workflow's static data and reset by themselves (hourly per visitor, daily overall)."
+        "content": "## Lead Magnet API (v3.2, protected)\nFour addresses, one protected flow: `/webhook/lead-magnet/outline`, `/section`, `/pass` (fresh writing pass, no AI) and `/pdf` (PDF via Apify).\n\n**Setup after import**\n1. Open **OpenAI: create outline** and **OpenAI: write section**, select your OpenAI credential in both. Open **Apify: make PDF**, select your Apify credential.\n2. Open **Guard**: paste your Cloudflare Turnstile **Secret Key** in `TURNSTILE_SECRET` (leave '' to keep the human check off).\n3. Deactivate the old *Outline* and *Section* workflows, then **Save** and **Activate** this one.\n\n**Settings** at the top of **Guard**: allowed pages, daily limit (1,000), per-visitor limits, pass lifetime.\nModel and prompt version: top of **Validate outline input** / **Validate section input**. Apify actor name: top of **Validate PDF input**.\n\nSuccessful runs are not stored (visitor privacy); failed runs are kept in Executions for debugging.\nCounters live in this workflow's static data and reset by themselves (hourly per visitor, daily overall)."
       }
     }
   ],
@@ -811,6 +1007,111 @@
         ]
       ]
     },
+    "Webhook: pdf": {
+      "main": [
+        [
+          {
+            "node": "Tag: pdf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag: pdf": {
+      "main": [
+        [
+          {
+            "node": "Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF?": {
+      "main": [
+        [
+          {
+            "node": "Validate PDF input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Outline or section?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate PDF input": {
+      "main": [
+        [
+          {
+            "node": "PDF input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF input OK?": {
+      "main": [
+        [
+          {
+            "node": "Apify: make PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: make PDF": {
+      "main": [
+        [
+          {
+            "node": "Check PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check PDF": {
+      "main": [
+        [
+          {
+            "node": "Respond: PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: generation failed (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Guard": {
       "main": [
         [
@@ -869,7 +1170,7 @@
         ],
         [
           {
-            "node": "Outline or section?",
+            "node": "PDF?",
             "type": "main",
             "index": 0
           }

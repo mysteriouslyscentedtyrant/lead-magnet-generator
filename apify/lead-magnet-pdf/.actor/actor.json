@@ -1,0 +1,10 @@
+{
+  "actorSpecification": 1,
+  "name": "lead-magnet-pdf",
+  "title": "Lead Magnet PDF",
+  "description": "Private: converts a Lead Magnet Generator document to a PDF with headless Chrome.",
+  "version": "1.0",
+  "buildTag": "latest",
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile"
+}

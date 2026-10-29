@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.4.0';
+  var VERSION = '0.5.0';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -74,7 +74,9 @@
     concurrency: Math.max(1, Math.min(4, parseInt(root.getAttribute('data-concurrency'), 10) || 3)),
     sitekey: (root.getAttribute('data-turnstile-sitekey') || '').trim(),
     // Inside the landing page (.lmg-page) the page has its own headline, so the tool skips its header.
-    embedded: !!(root.closest && root.closest('.lmg-page')) || root.getAttribute('data-header') === 'off'
+    embedded: !!(root.closest && root.closest('.lmg-page')) || root.getAttribute('data-header') === 'off',
+    // data-pdf="server": real one-click download through n8n + Apify. Otherwise the print window.
+    pdfServer: root.getAttribute('data-pdf') === 'server'
   };
 
   var state = load() || freshState();
@@ -952,7 +954,7 @@
     dlBtn.classList.add('lmg-btn--block');
     var download = h('div', { class: 'lmg-ctrl lmg-ctrl--download lmg-dl' }, [
       dlBtn,
-      h('p', { class: 'lmg-help', text: 'Your browser\'s print window opens. Choose "Save as PDF" as the destination (not "Microsoft Print to PDF"), so your button stays clickable.' }),
+      h('p', { class: 'lmg-help lmg-dl-hint', text: DL_HINT }),
       state.notice && state.notice.kind === 'error' ? notice(state.notice) : null
     ]);
 
@@ -1108,6 +1110,69 @@
     ]);
   }
 
+  // ------------------------------------------------------------------ PDF download: real file from the server, print window as backup
+  function pdfFileName(title) {
+    var n = String(title || '').replace(/[\\/:*?"<>|\u0000-\u001F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    return (n || 'lead-magnet') + '.pdf';
+  }
+  // The exact document the print window would use (fonts loaded, page fit applied), as one HTML string.
+  function printHtml() {
+    return exportPdf({ dryRun: true }).then(function (frame) {
+      var html = '<!doctype html>' + frame.contentDocument.documentElement.outerHTML;
+      frame.remove();
+      return html;
+    });
+  }
+  function fetchPdf(html, filename) {
+    if (config.mock) {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          if (/\[pdf-fail\]/i.test(state.doc.title)) reject({ ok: false, code: 'generation_failed' });
+          else resolve(new Blob(['%PDF-1.4\n% mock file\n' + html.length], { type: 'application/pdf' }));
+        }, 900);
+      });
+    }
+    function attempt(renewed) {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 150000);
+      return fetch(config.api + '/pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ pass: state.pass || undefined, html: html, filename: filename.replace(/\.pdf$/, '') })
+      }).then(function (res) {
+        clearTimeout(timer);
+        var type = res.headers.get('content-type') || '';
+        if (res.ok && type.indexOf('application/pdf') !== -1) {
+          return res.blob().then(function (blob) { if (blob.size < 500) throw { ok: false, code: 'bad_response' }; return blob; });
+        }
+        return res.json().catch(function () { return { ok: false, code: 'bad_response' }; }).then(function (j) {
+          if (j && j.code === 'verify_required' && !renewed) {
+            return renewPass().then(function () { return attempt(true); }, function (e) { throw { ok: false, code: 'human', message: humanError(e) }; });
+          }
+          throw j || { ok: false, code: 'bad_response' };
+        });
+      }, function () {
+        clearTimeout(timer);
+        throw { ok: false, code: controller.signal.aborted ? 'timeout' : 'network' };
+      });
+    }
+    return attempt(false);
+  }
+  function saveBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 60000);
+  }
+  function setBtnBusy(btn, on, label) {
+    btn.disabled = on; btn.classList.toggle('is-busy', on);
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+    var sp = btn.querySelector('.lmg-spinner');
+    if (on && !sp) btn.insertBefore(h('span', { class: 'lmg-spinner', 'aria-hidden': 'true' }), btn.firstChild);
+    if (!on && sp) sp.remove();
+    btn.lastChild.textContent = on ? label : 'Download PDF';
+  }
   function downloadPdf(btn) {
     var c = state.doc.cta;
     if (c.url && !validUrl(c.url)) {
@@ -1115,15 +1180,37 @@
       pendingFocus = '[data-field="cta-url"]';
       render(); return;
     }
-    btn.disabled = true; btn.classList.add('is-busy');
-    btn.insertBefore(h('span', { class: 'lmg-spinner', 'aria-hidden': 'true' }), btn.firstChild);
-    btn.lastChild.textContent = 'Preparing your PDF\u2026';
-    exportPdf().then(function () {
-      btn.disabled = false; btn.classList.remove('is-busy');
-      var sp = btn.querySelector('.lmg-spinner'); if (sp) sp.remove();
-      btn.lastChild.textContent = 'Download PDF';
+    setBtnBusy(btn, true, 'Preparing your PDF\u2026');
+    if (!config.pdfServer) {
+      exportPdf().then(function () { setBtnBusy(btn, false); });
+      return;
+    }
+    var hint = btn.parentNode && btn.parentNode.querySelector('.lmg-dl-hint');
+    var oldNotice = btn.parentNode && btn.parentNode.querySelector('.lmg-notice');
+    if (oldNotice) oldNotice.remove();
+    var slow = setTimeout(function () { if (hint) hint.textContent = 'Almost there. The first PDF can take up to 20 seconds.'; }, 6000);
+    var filename = pdfFileName(state.doc.title);
+    printHtml().then(function (html) { return fetchPdf(html, filename); }).then(function (blob) {
+      clearTimeout(slow);
+      saveBlob(blob, filename);
+      setBtnBusy(btn, false);
+      if (hint) hint.textContent = 'Downloaded: ' + filename + '. Check your downloads folder.';
+    }, function (err) {
+      clearTimeout(slow);
+      setBtnBusy(btn, false);
+      if (hint) hint.textContent = DL_HINT;
+      var own = err && ['rate_limited', 'daily_limit', 'human', 'verify_failed', 'invalid_input'].indexOf(err.code) !== -1 && err.message;
+      state.notice = {
+        kind: 'error',
+        text: (own || 'We couldn\u2019t create the download right now.') + ' You can still save it with your browser\u2019s print window.',
+        action: button('Use the print window', { kind: 'ghost', small: true, onClick: function () { exportPdf(); } })
+      };
+      var card = btn.parentNode;
+      if (card) card.appendChild(notice(state.notice));
+      state.notice = null;
     });
   }
+
 
   // ------------------------------------------------------------------ document renderer (plain preview, reused by templates later)
   function renderBlocks(blocks) {
@@ -1759,6 +1846,9 @@
     });
   }
 
+  var DL_HINT_PRINT = 'Your browser\'s print window opens. Choose "Save as PDF" as the destination (not "Microsoft Print to PDF"), so your button stays clickable.';
+  var DL_HINT_SERVER = 'Your PDF downloads in a few seconds, with a clickable button.';
+  var DL_HINT = config.pdfServer ? DL_HINT_SERVER : DL_HINT_PRINT;
   var EMPTY_DOC = '<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>';
 
   // Builds the document in a hidden frame and opens the browser's print dialog.

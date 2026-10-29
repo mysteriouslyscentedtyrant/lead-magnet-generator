@@ -1,0 +1,12 @@
+{
+  "name": "lead-magnet-pdf",
+  "version": "1.0.0",
+  "description": "Turns a Lead Magnet Generator print document into a PDF (private actor).",
+  "type": "module",
+  "private": true,
+  "scripts": { "start": "node src/main.js" },
+  "dependencies": {
+    "apify": "^3.2.0",
+    "puppeteer": "*"
+  }
+}

@@ -11,10 +11,11 @@ systeme.io page (Raw HTML element)
    │  3. user edits / approves outline
    │  4. POST /webhook/section  (once per section, with a progress bar) ──► n8n: same pattern
    │  5. user picks template, colors, fonts, logo, CTA link (live preview)
-   ▼  6. "Download PDF" → browser print dialog → Save as PDF
+   │  6. "Download PDF" → POST /webhook/pdf ──► n8n: check → private Apify actor (headless Chrome) → PDF file
+   ▼     backup if the PDF service fails: the browser's print window → Save as PDF
 ```
 
-The OpenAI API key exists **only** inside n8n credentials. The frontend never sees it.
+The OpenAI and Apify keys exist **only** inside n8n credentials. The frontend never sees them.
 
 ## Repo structure
 
@@ -24,6 +25,8 @@ The OpenAI API key exists **only** inside n8n credentials. The frontend never se
 /prompts       Versioned AI prompts, fetched by n8n at runtime
 /schema        JSON schemas: the shared document shape + the AI response formats
 /n8n           Importable n8n workflow JSON files                                       (Phases 2-3)
+/apify         Private Apify actor that turns the print-ready document into a PDF       (Last step)
+/scripts       build_widget.py: builds the pinned systeme.io snippet
 ```
 
 ## Decisions log
@@ -38,6 +41,7 @@ The OpenAI API key exists **only** inside n8n credentials. The frontend never se
 | 2026-10-27 | PDF via native browser paged media, no pagination library. | Current Chrome supports page size, named pages and page-number margin boxes; no extra dependency, and the output was tested with Chrome's own PDF engine. Firefox prints the same layout without page numbers. |
 | 2026-10-27 | Repo is public. | n8n reads prompts with no token; jsDelivr can serve the frontend for free. No secrets live in the repo. |
 | 2026-10-27 | OpenAI called with the HTTP Request node (OpenAI credential), not the OpenAI node. | Full control of strict JSON-schema output, independent of n8n node versions. Starting model: `gpt-4.1-mini`. |
+| 2026-10-29 | Real PDF download through a private Apify actor (headless Chrome), print window kept as the backup. | Decided with the team lead. Gotenberg needs its own server and the n8n VPS has 1 GB RAM, so Chrome there would risk n8n itself. The company already has Apify; a PDF costs well under one cent. The actor renders the same HTML as the print window, so both give the same layout. |
 
 ## The document format (`/schema`)
 
@@ -90,11 +94,11 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 | `app.css` | Styles, all scoped under `.lmg` with a zero-weight `:where()` reset so the page's own CSS can't break the tool. |
 | `probe.html` / `probe.js` | One-off page check (scripts, iframe, jsDelivr, fonts, CORS). Not needed in production. |
 
-Options on `<div id="lead-magnet-generator">`: `data-turnstile-sitekey` (Cloudflare Turnstile site key; empty = no human check), `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3).
+Options on `<div id="lead-magnet-generator">`: `data-turnstile-sitekey` (Cloudflare Turnstile site key; empty = no human check), `data-api` (n8n webhook base, e.g. `https://n8n.team-sio.com/webhook/lead-magnet`), `data-mock="1"` (fake answers, no AI calls: for demos and tests), `data-concurrency` (sections written at once, default 3), `data-pdf="server"` (one-click download through n8n + Apify; without it, "Download PDF" opens the print window).
 
 Security: every piece of user or AI text is inserted with `textContent`, never as HTML. The only `innerHTML` is for fixed icon SVGs. Logos are re-drawn through a canvas (strips anything hidden in the file) and kept in the browser only. The CTA link must be `http(s)://`. Brand text placed in the PDF footer is escaped as a CSS string.
 
-**How the PDF works:** the document is rendered into a hidden, print-only frame with the browser's native paged media: `@page` size (A4 or Letter), a full-bleed cover (named page with no margins), each ebook chapter on a new page, running footer with brand name and page number, a one-page checklist that scales its text to the number of items. The browser's print window opens and the user picks "Save as PDF". Colors stay readable for any custom palette: text on colored areas switches between white and dark, and colors too light to read on white are darkened automatically.
+**How the PDF works:** the document is rendered into a hidden, print-only frame with the browser's native paged media: `@page` size (A4 or Letter), a full-bleed cover (named page with no margins), each ebook chapter on a new page, running footer with brand name and page number, a one-page checklist that scales its text to the number of items. With `data-pdf="server"`, the page sends that same print-ready HTML to n8n `/pdf`, which has the Apify actor print it with headless Chrome and returns the file (a few seconds). If that fails, the page offers "Use the print window", where the user picks "Save as PDF". Colors stay readable for any custom palette: text on colored areas switches between white and dark, and colors too light to read on white are darkened automatically.
 
 **Releasing a new frontend version**
 1. Change `frontend/app.js` / `app.css` / `page.template.html`, bump `VERSION` in `app.js`.
@@ -104,18 +108,25 @@ Security: every piece of user or AI text is inserted with `textContent`, never a
 
 ## n8n workflows (`/n8n`)
 
-### Live: `lead-magnet-api-workflow.json` (v3.1, protected)
+### Live: `lead-magnet-api-workflow.json` (v3.2, protected)
 
-One workflow with three fixed webhook addresses (`/webhook/lead-magnet/outline`, `/section`, `/pass`) that feed the same protected flow; `/pass` returns a fresh writing pass with no AI call. (Not a single `lead-magnet/:action` webhook: n8n puts the webhook ID into addresses with variable parts, so the short address would not match.) It replaces the two older workflows below (kept for reference). Request/response formats are unchanged, with these additions: requests may carry `turnstile` (human-check token) and `pass`; successful outline answers include `pass`.
+One workflow with four fixed webhook addresses (`/webhook/lead-magnet/outline`, `/section`, `/pass`, `/pdf`) that feed the same protected flow; `/pass` returns a fresh writing pass with no AI call; `/pdf` returns a PDF file. (Not a single `lead-magnet/:action` webhook: n8n puts the webhook ID into addresses with variable parts, so the short address would not match.) It replaces the two older workflows below (kept for reference). Request/response formats are unchanged, with these additions: requests may carry `turnstile` (human-check token) and `pass`; successful outline answers include `pass`.
 
 **Protection (all settings at the top of the Guard node)**
 - Allowed pages: `https://sehnounberoual.systeme.io`, `https://systeme.io`, `https://www.systeme.io` (CORS + origin check; requests without a matching Origin are refused).
 - Human check: Cloudflare Turnstile, verified server-side (success + hostname). Off while `TURNSTILE_SECRET` is empty.
 - Writing pass: HMAC-SHA256 signed, valid 24 h, required to write sections, so bots can't skip the outline step. Expired → the page does one quick check and gets a new pass from `/pass`.
 - Limits: 1,000 lead magnets per day overall (UTC), 6 outlines and 80 sections per visitor per hour. Visitors are identified by a hashed IP, never stored in clear. Counters live in the workflow's static data and reset by themselves.
+- PDFs: 20 per visitor per hour, 3,000 per day overall. Needs a valid writing pass (or a human check).
 - Privacy: successful runs are not saved in Executions; failed runs are kept for debugging.
 
-Error codes the page understands: `forbidden_origin` (403), `verify_required` / `verify_failed` (403), `rate_limited` (429), `daily_limit` (503), `invalid_input` (400), `rejected` (200), `generation_failed` (502).
+**`/pdf` step (v3.2)**
+- Request: `{ "pass": "...", "html": "<!doctype html>…", "filename": "My title" }`. Response: the PDF file (`application/pdf`, downloaded as `<filename>.pdf`), or the usual JSON error.
+- **Validate PDF input** refuses anything that is not the tool's own document: over 4 MB, scripts, frames, forms, `on…=` handlers, meta refresh, or a missing `<main class="lmt …">`. Setting: `APIFY_ACTOR` (`username~lead-magnet-pdf`).
+- **Apify: make PDF** calls the actor's `run-sync` API (1024 MB, 120 s, 2 retries) with the **Apify account** credential. **Check PDF** makes sure the answer really is a PDF.
+- In the actor, the document is printed with scripts blocked by a Content-Security-Policy and every network request blocked except Google Fonts, so a crafted document can't run code or reach other sites. See `apify/lead-magnet-pdf/README.md` for the Apify setup.
+
+Error codes the page understands: `forbidden_origin` (403), `verify_required` / `verify_failed` (403), `rate_limited` (429), `daily_limit` (503), `invalid_input` (400), `rejected` (200), `generation_failed` (502). For `/pdf`, any error shows the "Use the print window" backup.
 
 ### Older (v2): `outline-workflow.json` and `section-workflow.json`
 
@@ -172,4 +183,5 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 5** — 3 design templates, live preview, customization — `v0.2.0`
 - [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
 - [x] **Phase 7** — hardening: Turnstile, signed writing pass, rate limits, daily cap, origin check, no success logs, prompt fixes (outline v3, section v2) — frontend `v0.3.0`, workflow v3
-- [ ] **Last step** — real one-click PDF download (postponed 2026-10-27). Recommended: Gotenberg container next to n8n, print window kept as fallback. Alternatives: in-browser PDF library or a paid PDF API.
+- [x] **Phase 8** — landing page around the tool, one download button under the preview — frontend `v0.4.0`
+- [ ] **Last step** — real one-click PDF download through a private Apify actor, print window kept as the backup — frontend `v0.5.0`, workflow v3.2, `apify/lead-magnet-pdf` (built; waiting for the actor setup in Apify and a live test)
