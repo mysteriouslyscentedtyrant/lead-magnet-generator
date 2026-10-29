@@ -84,7 +84,8 @@ Each file has a header (between `---` lines, for humans), then `===SYSTEM===` (t
 
 | File | What it is |
 |---|---|
-| `widget.html` | **The snippet to paste** into a systeme.io Raw HTML element. Loads the pinned release from jsDelivr with integrity hashes. |
+| `widget.html` | **The snippet to paste** into a systeme.io Raw HTML element: the landing page (hero, how it works, what you get, FAQ, closing call to action) around the tool. Generated, don't edit by hand. |
+| `page.template.html` | Source of the landing page texts and layout. Edit here, then run `scripts/build_widget.py`. |
 | `app.js` | The whole tool: steps, outline editor, parallel section writing (3 at a time), autosave in the browser, live document preview, design step (3 templates, 6 palettes + custom colors, 5 font pairs, logo, brand name, CTA link, A4/Letter) with a live page preview, and PDF export. |
 | `app.css` | Styles, all scoped under `.lmg` with a zero-weight `:where()` reset so the page's own CSS can't break the tool. |
 | `probe.html` / `probe.js` | One-off page check (scripts, iframe, jsDelivr, fonts, CORS). Not needed in production. |
@@ -96,8 +97,8 @@ Security: every piece of user or AI text is inserted with `textContent`, never a
 **How the PDF works:** the document is rendered into a hidden, print-only frame with the browser's native paged media: `@page` size (A4 or Letter), a full-bleed cover (named page with no margins), each ebook chapter on a new page, running footer with brand name and page number, a one-page checklist that scales its text to the number of items. The browser's print window opens and the user picks "Save as PDF". Colors stay readable for any custom palette: text on colored areas switches between white and dark, and colors too light to read on white are darkened automatically.
 
 **Releasing a new frontend version**
-1. Change `frontend/app.js` / `app.css`, bump `VERSION` in `app.js`.
-2. Regenerate `widget.html` with the new tag and new integrity hashes (`openssl dgst -sha384 -binary file | openssl base64 -A`).
+1. Change `frontend/app.js` / `app.css` / `page.template.html`, bump `VERSION` in `app.js`.
+2. Commit and push, then run `python3 scripts/build_widget.py <commit-sha>` to regenerate `widget.html` (pinned URLs + integrity hashes). `--local out.html` builds a test page with fake answers.
 3. Commit and push, then pin `widget.html` to that commit's full SHA (`@<sha>` in both jsDelivr URLs) and commit again. A commit SHA never changes, so the hashes always match. (This session can't push git tags; a GitHub release tag `vX.Y.Z` can be used instead when created from github.com.)
 4. Paste the new `widget.html` into systeme.io and republish. Old pages keep working on their pinned version until then.
 

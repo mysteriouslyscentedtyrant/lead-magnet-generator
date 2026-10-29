@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.3.1';
+  var VERSION = '0.4.0';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -72,7 +72,9 @@
     api: (root.getAttribute('data-api') || '').replace(/\/+$/, ''),
     mock: root.getAttribute('data-mock') === '1',
     concurrency: Math.max(1, Math.min(4, parseInt(root.getAttribute('data-concurrency'), 10) || 3)),
-    sitekey: (root.getAttribute('data-turnstile-sitekey') || '').trim()
+    sitekey: (root.getAttribute('data-turnstile-sitekey') || '').trim(),
+    // Inside the landing page (.lmg-page) the page has its own headline, so the tool skips its header.
+    embedded: !!(root.closest && root.closest('.lmg-page')) || root.getAttribute('data-header') === 'off'
   };
 
   var state = load() || freshState();
@@ -532,10 +534,12 @@
     root.classList.add('lmg');
     root.setAttribute('data-step', state.step);
 
-    root.appendChild(h('header', { class: 'lmg-head' }, [
-      h('h2', { class: 'lmg-title', text: 'Create a lead magnet in minutes' }),
-      h('p', { class: 'lmg-lede', text: 'Pick a format, describe your audience, and get a ready-to-edit ebook, guide or checklist written for you.' })
-    ]));
+    if (!config.embedded) {
+      root.appendChild(h('header', { class: 'lmg-head' }, [
+        h('h2', { class: 'lmg-title', text: 'Create a lead magnet in minutes' }),
+        h('p', { class: 'lmg-lede', text: 'Pick a format, describe your audience, and get a ready-to-edit ebook, guide or checklist written for you.' })
+      ]));
+    }
     root.appendChild(renderStepper());
 
     var wide = state.step === 5 && !!state.doc;
@@ -946,10 +950,10 @@
     // -- download
     var dlBtn = button('Download PDF', { onClick: function () { downloadPdf(dlBtn); } });
     dlBtn.classList.add('lmg-btn--block');
-    var download = h('div', { class: 'lmg-ctrl lmg-ctrl--download' }, [
+    var download = h('div', { class: 'lmg-ctrl lmg-ctrl--download lmg-dl' }, [
       dlBtn,
       h('p', { class: 'lmg-help', text: 'Your browser\'s print window opens. Choose "Save as PDF" as the destination (not "Microsoft Print to PDF"), so your button stays clickable.' }),
-      notice(state.notice)
+      state.notice && state.notice.kind === 'error' ? notice(state.notice) : null
     ]);
 
     // -- template
@@ -1062,7 +1066,6 @@
     var sizeGroup = radioGroup('Page size', [['A4', 'A4'], ['Letter', 'US Letter']], b.pageSize, function (v) { b.pageSize = v; save(); render(); });
 
     var controls = h('div', { class: 'lmg-design-controls' }, [
-      download,
       ctrl('Template', null, [tplGroup]),
       ctrl('Colors', null, [swatches, h('div', { class: 'lmg-color-row' }, [cp.el, ca.el])]),
       ctrl('Fonts', null, [fontGroup]),
@@ -1075,7 +1078,6 @@
     previewFrame.addEventListener('load', function () { updatePreview(); }, { once: true });
     previewFrame.srcdoc = EMPTY_DOC;
 
-    var dlBtn2 = button('Download PDF', { onClick: function () { downloadPdf(dlBtn2); } });
     var copyBtn = button('Copy text', { kind: 'ghost', onClick: function () {
       var text = docToText(d);
       var done = function () { copyBtn.lastChild.textContent = 'Copied'; setTimeout(function () { copyBtn.lastChild.textContent = 'Copy text'; }, 2000); };
@@ -1083,16 +1085,21 @@
     } });
 
     return panel('Design and download', 'Pick a look, add your brand and your link, then download your PDF.', [
+      state.notice && state.notice.kind !== 'error' ? h('div', { style: 'margin-bottom:24px' }, notice(state.notice)) : null,
       h('div', { class: 'lmg-design' }, [
         controls,
-        h('div', { class: 'lmg-design-preview' }, [
-          h('div', { class: 'lmg-design-preview-head' }, [h('span', { class: 'lmg-preview-title', text: 'Preview' }),
-            h('span', { class: 'lmg-help', text: 'Scroll to see every page. Page numbers appear in the PDF.' })]),
-          previewFrame
+        // Preview and download share a column that stays in view on desktop.
+        // On phones the preview goes first and the download card last, after all the options.
+        h('div', { class: 'lmg-design-side' }, [
+          h('div', { class: 'lmg-design-preview' }, [
+            h('div', { class: 'lmg-design-preview-head' }, [h('span', { class: 'lmg-preview-title', text: 'Preview' }),
+              h('span', { class: 'lmg-help', text: 'Scroll to see every page. Page numbers appear in the PDF.' })]),
+            previewFrame
+          ]),
+          download
         ])
       ]),
       h('div', { class: 'lmg-actions' }, [
-        dlBtn2,
         copyBtn,
         button('Back to writing', { kind: 'ghost', onClick: function () { goTo(4); } }),
         h('span', { class: 'lmg-actions-spacer' }),
