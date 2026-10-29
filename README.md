@@ -41,7 +41,7 @@ The OpenAI and Apify keys exist **only** inside n8n credentials. The frontend ne
 | 2026-10-27 | PDF via native browser paged media, no pagination library. | Current Chrome supports page size, named pages and page-number margin boxes; no extra dependency, and the output was tested with Chrome's own PDF engine. Firefox prints the same layout without page numbers. |
 | 2026-10-27 | Repo is public. | n8n reads prompts with no token; jsDelivr can serve the frontend for free. No secrets live in the repo. |
 | 2026-10-27 | OpenAI called with the HTTP Request node (OpenAI credential), not the OpenAI node. | Full control of strict JSON-schema output, independent of n8n node versions. Starting model: `gpt-4.1-mini`. |
-| 2026-10-29 | Real PDF download through a private Apify actor (headless Chrome), print window kept as the backup. | Decided with the team lead. Gotenberg needs its own server and the n8n VPS has 1 GB RAM, so Chrome there would risk n8n itself. The company already has Apify; a PDF costs well under one cent. The actor renders the same HTML as the print window, so both give the same layout. |
+| 2026-10-29 | Real PDF download through a private Apify actor (headless Chrome), print window kept as the backup. | One-click download with a clickable button, without running a browser next to n8n. The actor prints the same HTML as the print window, so both give the same layout. |
 
 ## The document format (`/schema`)
 
