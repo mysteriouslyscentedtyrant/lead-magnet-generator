@@ -188,4 +188,4 @@ Output cleaning in **Check section**: links, email addresses and Markdown symbol
 - [x] **Phase 6** — PDF export (print CSS) — `v0.2.0`, built together with Phase 5
 - [x] **Phase 7** — hardening: Turnstile, signed writing pass, rate limits, daily cap, origin check, no success logs, prompt fixes (outline v3, section v2) — frontend `v0.3.0`, workflow v3
 - [x] **Phase 8** — landing page around the tool, one download button under the preview — frontend `v0.4.0`
-- [ ] **Last step** — real one-click PDF download through a private Apify actor, print window kept as the backup — frontend `v0.5.0`, workflow v3.2, `apify/lead-magnet-pdf` (built; next: run the setup workflow, then a live test)
+- [x] **Last step** — real one-click PDF download through a private Apify actor, print window kept as the backup — frontend `v0.5.0`, workflow v3.2, `apify/lead-magnet-pdf` (live-tested 2026-10-29: French ebook downloaded from the published page in Edge)
