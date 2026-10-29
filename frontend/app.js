@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.5.1';
+  var VERSION = '0.5.2';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -235,8 +235,15 @@
     state.step = step; state.notice = null; state.errors = {};
     pendingFocus = '.lmg-panel-title';
     save(); render();
-    var top = root.getBoundingClientRect().top + window.pageYOffset - 16;
-    if (root.getBoundingClientRect().top < 0) window.scrollTo({ top: top, behavior: 'smooth' });
+  }
+  // After a step change the new panel can be much shorter than the old one (a long outline, then the
+  // writing view), which would leave the visitor near the page footer. Bring the tool's top back into view.
+  function scrollToTool() {
+    var r = root.getBoundingClientRect();
+    if (r.top >= 0 && r.top < window.innerHeight * 0.5) return;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try { window.scrollTo({ top: r.top + window.pageYOffset - 16, behavior: reduce ? 'auto' : 'smooth' }); }
+    catch (e) { window.scrollTo(0, r.top + window.pageYOffset - 16); }
   }
   function chooseFormat(key) {
     state.format = key; state.notice = null; save(); render();
@@ -555,7 +562,9 @@
     updateLive();
     Array.prototype.forEach.call(root.querySelectorAll('.lmg-autogrow'), autosize);
 
+    var stepChanged = pendingFocus === '.lmg-panel-title';
     var target = pendingFocus ? root.querySelector(pendingFocus) : (keepField ? root.querySelector('[data-field="' + keepField + '"]') : null);
+    if (stepChanged) scrollToTool();
     if (target) {
       if (pendingFocus === '.lmg-panel-title') target.setAttribute('tabindex', '-1');
       try { target.focus({ preventScroll: pendingFocus === '.lmg-panel-title' }); } catch (e) { target.focus(); }
