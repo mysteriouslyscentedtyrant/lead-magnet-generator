@@ -14,7 +14,7 @@
 
   var ROOT_ID = 'lead-magnet-generator';
   var STORAGE_KEY = 'lmg:v1';
-  var VERSION = '0.5.0';
+  var VERSION = '0.5.1';
 
   // ------------------------------------------------------------------ constants
   var FORMATS = {
@@ -1320,8 +1320,8 @@
       var s = document.createElement('script');
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       s.async = true;
-      s.onload = function () { var n = 0; (function wait() { if (window.turnstile) resolve(); else if (n++ > 100) reject(new Error('turnstile')); else setTimeout(wait, 50); })(); };
-      s.onerror = function () { tsLoad = null; reject(new Error('turnstile')); };
+      s.onload = function () { var n = 0; (function wait() { if (window.turnstile) resolve(); else if (n++ > 100) reject(new Error('ts_load')); else setTimeout(wait, 50); })(); };
+      s.onerror = function () { tsLoad = null; reject(new Error('ts_load')); };
       document.head.appendChild(s);
     });
     return tsLoad;
@@ -1355,8 +1355,10 @@
         try {
           widget = window.turnstile.render(hostEl, {
             sitekey: config.sitekey, action: 'lead_magnet', appearance: 'interaction-only',
+            theme: 'light', retry: 'never',
             callback: function (token) { finish(resolve, token); },
-            'error-callback': function () { finish(reject, new Error('turnstile')); },
+            'error-callback': function () { finish(reject, new Error('ts_failed')); },
+            'timeout-callback': function () { finish(reject, new Error('ts_timeout')); },
             'expired-callback': function () { /* a new token is issued automatically */ },
             'before-interactive-callback': show
           });
@@ -1365,8 +1367,11 @@
     });
   }
   function humanError(e) {
-    return e && e.message === 'cancelled' ? 'The security check was cancelled. Click the button again when you are ready.'
-      : 'The security check could not load. Check your connection, or turn off a blocker for this page, then try again.';
+    var m = e && e.message;
+    if (m === 'cancelled') return 'The security check was cancelled. Click the button again when you are ready.';
+    if (m === 'ts_failed') return 'The security check didn\u2019t go through. Please try again.';
+    if (m === 'ts_timeout') return 'The security check timed out. Please try again.';
+    return 'The security check could not load. Check your connection, or turn off a blocker for this page, then try again.';
   }
   // One shared renewal for all parallel writers.
   var passRenewal = null;
