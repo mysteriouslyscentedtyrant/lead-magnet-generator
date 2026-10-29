@@ -1,10 +1,10 @@
-<!-- Lead Magnet Generator v0.4.0 (landing page + tool)
+<!-- Lead Magnet Generator v0.5.0 (landing page + tool)
      Paste ALL of this into one systeme.io "Raw HTML" element, save, publish, then open the live page.
      The texts below are plain HTML: you can edit them here. Keep the element with id="lead-magnet-generator". -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@d1cb6e267af9addd733d37acc8f799f5bd3774be/frontend/app.css" integrity="sha384-F7JgBI35EhJOWQAUgnq8xRhh629s0VIPn6SRaqQhsHaUslF4tVlMV4UEmntf5hnB" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@25a4d38fa85d55e9f0aeb0cf50014847a12ca0e0/frontend/app.css" integrity="sha384-F7JgBI35EhJOWQAUgnq8xRhh629s0VIPn6SRaqQhsHaUslF4tVlMV4UEmntf5hnB" crossorigin="anonymous">
 
 <div class="lmg-page">
 
@@ -28,7 +28,7 @@
 
   <!-- The tool -->
   <section class="lmp-tool" aria-label="Lead magnet generator">
-    <div id="lead-magnet-generator" data-api="https://n8n.team-sio.com/webhook/lead-magnet" data-turnstile-sitekey="0x4AAAAAAFoEMmlOhP6SjA0T" style="min-height:520px;font-family:Outfit,system-ui,sans-serif">
+    <div id="lead-magnet-generator" data-api="https://n8n.team-sio.com/webhook/lead-magnet" data-turnstile-sitekey="0x4AAAAAAFoEMmlOhP6SjA0T" data-pdf="server" style="min-height:520px;font-family:Outfit,system-ui,sans-serif">
       <p style="max-width:1040px;margin:56px auto;padding:0 24px;color:#5E6075">Loading the lead magnet generator…</p>
     </div>
   </section>
@@ -131,7 +131,7 @@
         </details>
         <details>
           <summary>How do I get the PDF?</summary>
-          <div class="lmp-answer"><p>Click "Download PDF". Your browser's print window opens: choose "Save as PDF" as the destination. Your call-to-action button stays clickable in the saved file.</p></div>
+          <div class="lmp-answer"><p>Click "Download PDF" and your file downloads in a few seconds, with a call-to-action button readers can click.</p><p>If the download service is busy, you can still save it with your browser's print window: choose "Save as PDF" as the destination.</p></div>
         </details>
         <details>
           <summary>Is my work saved?</summary>
@@ -139,7 +139,7 @@
         </details>
         <details>
           <summary>What happens to the information I type?</summary>
-          <div class="lmp-answer"><p>Your topic, audience, offer and outline are sent to an AI model to write the content. They are not kept after the content is written. Your logo never leaves your browser.</p></div>
+          <div class="lmp-answer"><p>Your topic, audience, offer and outline are sent to an AI model to write the content. They are not kept after the content is written.</p><p>When you download, your finished document (including your logo) is sent to our PDF service to create the file, which deletes it automatically afterwards. Until then, everything stays in your browser.</p></div>
         </details>
         <details>
           <summary>Can I trust the content?</summary>
@@ -172,5 +172,5 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@d1cb6e267af9addd733d37acc8f799f5bd3774be/frontend/app.js" integrity="sha384-ACPCcm9V6ghWOBOB5T09hXZuHzfTepqoBtsFlHPCBfBYrPN9ngVJto+gnKLhLmiG" crossorigin="anonymous" defer
+<script src="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@25a4d38fa85d55e9f0aeb0cf50014847a12ca0e0/frontend/app.js" integrity="sha384-tgIW/Cvo4daQQj0gKPvoUUVZXJnNkJNV5/QTBRNoIpv++Ne1OdNcKrftR0UiA34e" crossorigin="anonymous" defer
   onerror="var r=document.getElementById('lead-magnet-generator');if(r){r.firstElementChild.textContent='The tool could not load. Refresh the page to try again.';}"></script>
