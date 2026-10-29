@@ -1,12 +1,176 @@
-<!-- Lead Magnet Generator v0.3.1
+<!-- Lead Magnet Generator v0.4.0 (landing page + tool)
      Paste ALL of this into one systeme.io "Raw HTML" element, save, publish, then open the live page.
-     To update the tool later, replace this whole snippet with the new one from frontend/widget.html. -->
+     The texts below are plain HTML: you can edit them here. Keep the element with id="lead-magnet-generator". -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@4e3c649e5f611aef40b56f8cd04dad9da4161d1a/frontend/app.css" integrity="sha384-gxb1nNOQpIPiF4lWkMFOUzu3ZvLWkePgArGM2Es+pOXT3Gv+V1R4xG9DOoK2EjaG" crossorigin="anonymous">
-<div id="lead-magnet-generator" data-api="https://n8n.team-sio.com/webhook/lead-magnet" data-turnstile-sitekey="0x4AAAAAAFoEMmlOhP6SjA0T" style="min-height:480px;font-family:Outfit,system-ui,sans-serif">
-  <p style="max-width:1040px;margin:56px auto;padding:0 24px;color:#5E6075">Loading the lead magnet generator…</p>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@d1cb6e267af9addd733d37acc8f799f5bd3774be/frontend/app.css" integrity="sha384-F7JgBI35EhJOWQAUgnq8xRhh629s0VIPn6SRaqQhsHaUslF4tVlMV4UEmntf5hnB" crossorigin="anonymous">
+
+<div class="lmg-page">
+
+  <!-- Hero -->
+  <section class="lmp-hero">
+    <div class="lmp-wrap">
+      <a class="lmp-back" href="https://systeme.io/free-tools/">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 5 7.5 10l5 5"/></svg>
+        All free tools
+      </a>
+      <span class="lmp-badge">Free tool · Beta</span>
+      <h1 class="lmp-h1">Turn what you know into a lead magnet <span class="lmp-mark">in minutes</span></h1>
+      <p class="lmp-lede">Pick an ebook, guide or checklist, describe your audience, and AI writes it for you. Shape the outline, choose a design, add your brand and your link, then download a polished PDF.</p>
+      <ul class="lmp-chips">
+        <li>Ebook, guide or checklist</li>
+        <li>Written in 8 languages</li>
+        <li>Free, no signup</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- The tool -->
+  <section class="lmp-tool" aria-label="Lead magnet generator">
+    <div id="lead-magnet-generator" data-api="https://n8n.team-sio.com/webhook/lead-magnet" data-turnstile-sitekey="0x4AAAAAAFoEMmlOhP6SjA0T" style="min-height:520px;font-family:Outfit,system-ui,sans-serif">
+      <p style="max-width:1040px;margin:56px auto;padding:0 24px;color:#5E6075">Loading the lead magnet generator…</p>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="lmp-section">
+    <div class="lmp-wrap">
+      <span class="lmp-eyebrow">How it works</span>
+      <h2 class="lmp-h2">Four steps, a few minutes, one finished PDF.</h2>
+      <p class="lmp-intro">No signup and no design skills needed. The AI does the writing, and you decide what goes in at every step.</p>
+      <ol class="lmp-steps">
+        <li class="lmp-step lmp-step--1">
+          <span class="lmp-step-label">Step 01</span>
+          <span class="lmp-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg></span>
+          <h3>Describe it</h3>
+          <p>Pick an ebook, guide or checklist, then add your topic, your audience and what you offer next.</p>
+        </li>
+        <li class="lmp-step lmp-step--2">
+          <span class="lmp-step-label">Step 02</span>
+          <span class="lmp-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></span>
+          <h3>Shape the outline</h3>
+          <p>Edit titles and key points, add or reorder chapters. Nothing is written until you approve.</p>
+        </li>
+        <li class="lmp-step lmp-step--3">
+          <span class="lmp-step-label">Step 03</span>
+          <span class="lmp-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="m6.3 6.3 2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1"/></svg></span>
+          <h3>Let AI write</h3>
+          <p>Each section is written in seconds, with steps, examples and templates made for your audience.</p>
+        </li>
+        <li class="lmp-step lmp-step--4">
+          <span class="lmp-step-label">Step 04</span>
+          <span class="lmp-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg></span>
+          <h3>Design and download</h3>
+          <p>Choose a template, your colors, fonts and logo, add your link, and save your PDF.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- What you get -->
+  <section class="lmp-section lmp-band">
+    <div class="lmp-wrap">
+      <span class="lmp-eyebrow lmp-eyebrow--blue">What you get</span>
+      <h2 class="lmp-h2">Everything a lead magnet needs to be read.</h2>
+      <p class="lmp-intro">Built around what makes people open a free resource, finish it, and take the next step with you.</p>
+      <ul class="lmp-features">
+        <li class="lmp-feature">
+          <h3>A promise in the title</h3>
+          <p>Titles state the result your reader gets, not just the topic, so the PDF is worth downloading.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>A structure that fits the format</h3>
+          <p>Ebooks get an introduction, chapters and a conclusion. Guides get a step-by-step method and common mistakes. Checklists fit on one printable page.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>Practical, not generic</h3>
+          <p>Every section delivers one clear takeaway, with steps, examples, fill-in templates and checklists in your audience's words.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>Your offer, built in</h3>
+          <p>Tell it what you sell and the last page invites readers to your call, course or product. It never invents prices or deadlines.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>You stay in control</h3>
+          <p>Edit the outline before anything is written, rewrite any section in one click, and change the call to action at any time.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>Your brand on every page</h3>
+          <p>Three templates, six color palettes or your own colors, five font pairs, and your logo on the cover.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>A print-ready PDF</h3>
+          <p>A4 or US Letter, a full-page cover, page numbers, a table of contents for ebooks, and a button readers can click.</p>
+        </li>
+        <li class="lmp-feature">
+          <h3>Written in your language</h3>
+          <p>English, French, Spanish, German, Portuguese, Italian, Dutch and Arabic (right to left), or type another language.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="lmp-section">
+    <div class="lmp-wrap">
+      <span class="lmp-eyebrow lmp-eyebrow--green">FAQ</span>
+      <h2 class="lmp-h2">Common questions.</h2>
+      <div class="lmp-faq">
+        <details>
+          <summary>Is it free?</summary>
+          <div class="lmp-answer"><p>Yes. There is no signup and no payment. To keep it free for everyone, each visitor can create a few lead magnets per hour.</p></div>
+        </details>
+        <details>
+          <summary>What can I create?</summary>
+          <div class="lmp-answer"><p>An ebook (introduction, 4 to 7 chapters and a conclusion), a step-by-step guide (the problem, the method, common mistakes and the next step), or a one-page checklist. Each one ends with a call to action you can link to your offer.</p></div>
+        </details>
+        <details>
+          <summary>Can I change what the AI writes?</summary>
+          <div class="lmp-answer"><p>Yes. You review and edit the outline before anything is written: headings, key points and the order of chapters. After writing, you can rewrite any section, and change the title, subtitle and call to action whenever you like.</p><p>To edit individual sentences, use "Copy text" and paste the content into your own editor.</p></div>
+        </details>
+        <details>
+          <summary>How do I get the PDF?</summary>
+          <div class="lmp-answer"><p>Click "Download PDF". Your browser's print window opens: choose "Save as PDF" as the destination. Your call-to-action button stays clickable in the saved file.</p></div>
+        </details>
+        <details>
+          <summary>Is my work saved?</summary>
+          <div class="lmp-answer"><p>Yes, in this browser on this device, so you can close the page and come back. It stays until you start a new lead magnet or clear your browser data.</p></div>
+        </details>
+        <details>
+          <summary>What happens to the information I type?</summary>
+          <div class="lmp-answer"><p>Your topic, audience, offer and outline are sent to an AI model to write the content. They are not kept after the content is written. Your logo never leaves your browser.</p></div>
+        </details>
+        <details>
+          <summary>Can I trust the content?</summary>
+          <div class="lmp-answer"><p>The AI is told not to invent statistics, studies or quotes, and to mark examples as hypothetical. AI can still make mistakes, so read your lead magnet before you share it.</p></div>
+        </details>
+        <details>
+          <summary>How do I use my lead magnet with systeme.io?</summary>
+          <div class="lmp-answer"><p>Create a funnel with an opt-in page where visitors leave their email, then deliver your PDF on the thank-you page or in your welcome email.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing call to action -->
+  <section class="lmp-cta">
+    <span class="lmp-shape lmp-shape--ring" aria-hidden="true"></span>
+    <svg class="lmp-shape lmp-shape--plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+    <span class="lmp-shape lmp-shape--tri" aria-hidden="true"></span>
+    <svg class="lmp-shape lmp-shape--wave" viewBox="0 0 54 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M2 8c6-6 10-6 16 0s10 6 16 0 10-6 18 0"/></svg>
+    <span class="lmp-shape lmp-shape--box" aria-hidden="true"></span>
+    <div class="lmp-wrap">
+      <span class="lmp-eyebrow">Build with systeme.io</span>
+      <h2 class="lmp-h2">Write it <span class="lmp-mark">in minutes</span>, start collecting leads today.</h2>
+      <p class="lmp-cta-text">Put your lead magnet behind an opt-in page and deliver it automatically with systeme.io funnels and emails. Free to start with 2,000 contacts and three funnels.</p>
+      <a class="lmp-cta-btn" href="https://systeme.io/register">Start free
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      </a>
+    </div>
+  </section>
+
 </div>
-<script src="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@4e3c649e5f611aef40b56f8cd04dad9da4161d1a/frontend/app.js" integrity="sha384-RU60l770bl3VAK4OaQm5zTC+wIaLWHQFRwwSiE9jjqd5E7YXeElbp/cbxClHMPh3" crossorigin="anonymous" defer
+
+<script src="https://cdn.jsdelivr.net/gh/mysteriouslyscentedtyrant/lead-magnet-generator@d1cb6e267af9addd733d37acc8f799f5bd3774be/frontend/app.js" integrity="sha384-ACPCcm9V6ghWOBOB5T09hXZuHzfTepqoBtsFlHPCBfBYrPN9ngVJto+gnKLhLmiG" crossorigin="anonymous" defer
   onerror="var r=document.getElementById('lead-magnet-generator');if(r){r.firstElementChild.textContent='The tool could not load. Refresh the page to try again.';}"></script>
